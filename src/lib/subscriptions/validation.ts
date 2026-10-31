@@ -1,6 +1,15 @@
 import { z } from "zod";
 import { SubscriptionStatus } from "@prisma/client";
 
+export const PAYMENT_TERMS_OPTIONS = [
+  { label: "1 week", value: 7 },
+  { label: "2 weeks", value: 14 },
+  { label: "15 days", value: 15 },
+  { label: "1 month", value: 30 },
+  { label: "1 year", value: 365 },
+  { label: "2 years", value: 730 },
+] as const;
+
 export const subscriptionLineInputSchema = z.object({
   productId: z.coerce.number().int().positive("Product ID is required"),
   variantId: z.coerce.number().int().positive().nullable().optional(),
@@ -12,7 +21,7 @@ export const subscriptionLineInputSchema = z.object({
       (val) => val === undefined || val === "" || (!isNaN(Number(val)) && Number(val) >= 0),
       "Unit price must be a non-negative number"
     ),
-  taxId: z.coerce.number().int().positive().nullable().optional(),
+  taxId: z.coerce.number().int().positive("An active tax rule is required for each subscription line"),
 });
 
 export const createSubscriptionSchema = z
@@ -108,4 +117,3 @@ export const subscriptionListQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(10),
 });
-

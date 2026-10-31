@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { SubscriptionHeader } from "@/components/subscriptions/SubscriptionHeader";
 import { StatusBadge, StatusTimeline } from "@/components/subscriptions/StatusBadge";
 import { SubscriptionDTO, SubscriptionLineDTO } from "@/lib/subscriptions/types";
+import { PAYMENT_TERMS_OPTIONS } from "@/lib/subscriptions/validation";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -13,6 +14,7 @@ import {
   Pause,
   Play,
   RefreshCw,
+  Tag,
   XCircle,
 } from "lucide-react";
 
@@ -83,6 +85,10 @@ export default function CustomerPortalSubscriptionDetailPage() {
       sub.permittedActions?.canRenew ||
       sub.permittedActions?.canClose);
 
+  const paymentTermsLabel =
+    PAYMENT_TERMS_OPTIONS.find((o) => o.value === sub?.paymentTermsDays)?.label ??
+    `${sub?.paymentTermsDays ?? 15} days`;
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <SubscriptionHeader />
@@ -93,7 +99,7 @@ export default function CustomerPortalSubscriptionDetailPage() {
           className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-900"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
-          Back to My Subscriptions
+          Back to My Quotations & Subscriptions
         </Link>
 
         {loading ? (
@@ -121,17 +127,28 @@ export default function CustomerPortalSubscriptionDetailPage() {
                   </div>
                   <p className="mt-1 text-sm text-slate-600">
                     Plan: <strong className="text-slate-900">{sub.plan?.name}</strong> (
-                    {sub.plan?.billingPeriod})
+                    {sub.plan?.billingPeriod}) • Payment Terms:{" "}
+                    <strong className="text-slate-900">{paymentTermsLabel}</strong>
                   </p>
                 </div>
 
                 <div className="text-right">
-                  <div className="text-xs text-slate-500">Total Amount</div>
+                  <div className="text-xs text-slate-500">Grand Total</div>
                   <div className="font-mono text-2xl font-bold text-indigo-700">
                     ₹{sub.totals?.grandTotal ?? "0.00"}
                   </div>
                 </div>
               </div>
+
+              {sub.isQuotationExpired && sub.quotationValidUntil && (
+                <div className="mt-4 flex items-start gap-2.5 rounded-lg border border-red-200 bg-red-50 p-3.5 text-xs text-red-900">
+                  <AlertTriangle className="h-4 w-4 text-red-600 shrink-0 mt-0.5" />
+                  <span>
+                    This quotation expired on{" "}
+                    {new Date(sub.quotationValidUntil).toISOString().slice(0, 10)} and can no longer be accepted. Please contact our team for a revised quotation.
+                  </span>
+                </div>
+              )}
 
               {sub.pauseEvaluation?.warningMessage && (
                 <div className="mt-4 flex items-start gap-2.5 rounded-lg border border-amber-300 bg-amber-50 p-3.5 text-xs text-amber-900">
@@ -144,7 +161,7 @@ export default function CustomerPortalSubscriptionDetailPage() {
               {hasCustomerActions && (
                 <div className="mt-6 border-t border-slate-100 pt-4 space-y-3">
                   <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    Available Actions for Your Plan
+                    Customer Actions
                   </h2>
 
                   {actionError && (
@@ -160,9 +177,8 @@ export default function CustomerPortalSubscriptionDetailPage() {
                         disabled={busy}
                         onClick={() =>
                           triggerCustomerAction(
-                            `/api/subscriptions/${sub.id}/transition`,
+                            `/api/portal/subscriptions/${sub.id}/accept`,
                             {
-                              toStatus: "CONFIRMED",
                               note: "Customer accepted quotation via portal",
                             }
                           )
@@ -170,7 +186,7 @@ export default function CustomerPortalSubscriptionDetailPage() {
                         className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
                       >
                         <CheckCircle className="h-4 w-4" />
-                        Accept Quotation Offer
+                        Accept Quotation
                       </button>
                     )}
 
@@ -246,9 +262,9 @@ export default function CustomerPortalSubscriptionDetailPage() {
               <div className="lg:col-span-2 space-y-6">
                 <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
                   <h3 className="text-sm font-semibold text-slate-900 mb-3">
-                    Subscription Schedule
+                    Subscription Schedule & Terms
                   </h3>
-                  <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 text-sm">
+                  <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 text-sm">
                     <div className="rounded-lg bg-slate-50 p-3">
                       <span className="block text-xs text-slate-500">Start Date</span>
                       <strong className="font-mono">
@@ -260,6 +276,10 @@ export default function CustomerPortalSubscriptionDetailPage() {
                       <strong className="font-mono">
                         {new Date(sub.expiryDate).toISOString().slice(0, 10)}
                       </strong>
+                    </div>
+                    <div className="rounded-lg bg-slate-50 p-3">
+                      <span className="block text-xs text-slate-500">Payment Terms</span>
+                      <strong>{paymentTermsLabel}</strong>
                     </div>
                     <div className="rounded-lg bg-slate-50 p-3">
                       <span className="block text-xs text-slate-500">Next Billing Date</span>
@@ -283,7 +303,8 @@ export default function CustomerPortalSubscriptionDetailPage() {
                       <tr>
                         <th className="px-6 py-3">Item</th>
                         <th className="px-4 py-3 text-right">Qty</th>
-                        <th className="px-4 py-3 text-right">Unit Price</th>
+                        <th className="px-4 py-3 text-right">Agreed Unit Price</th>
+                        <th className="px-4 py-3">Tax</th>
                         <th className="px-6 py-3 text-right">Amount</th>
                       </tr>
                     </thead>
@@ -300,11 +321,20 @@ export default function CustomerPortalSubscriptionDetailPage() {
                               </div>
                             )}
                           </td>
-                          <td className="px-6 py-3.5 text-right font-mono">
+                          <td className="px-4 py-3.5 text-right font-mono">
                             {line.quantity}
                           </td>
-                          <td className="px-6 py-3.5 text-right font-mono">
+                          <td className="px-4 py-3.5 text-right font-mono">
                             ₹{Number(line.unitPrice).toFixed(2)}
+                          </td>
+                          <td className="px-4 py-3.5 text-xs text-slate-600">
+                            {line.tax
+                              ? `${line.tax.name} (${
+                                  line.tax.type === "PERCENT"
+                                    ? `${Number(line.tax.rate)}%`
+                                    : `₹${Number(line.tax.rate)}`
+                                })`
+                              : "—"}
                           </td>
                           <td className="px-6 py-3.5 text-right font-mono font-semibold">
                             ₹{Number(line.amount).toFixed(2)}
@@ -313,6 +343,34 @@ export default function CustomerPortalSubscriptionDetailPage() {
                       ))}
                     </tbody>
                   </table>
+
+                  <div className="border-t border-slate-100 bg-slate-50/60 px-6 py-4 flex flex-col items-end space-y-1 text-sm">
+                    <div className="flex w-64 justify-between text-slate-600">
+                      <span>Subtotal:</span>
+                      <span className="font-mono">₹{sub.totals?.linesSubtotal}</span>
+                    </div>
+                    {sub.totals?.eligibleDiscount && (
+                      <div className="flex w-64 justify-between text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded text-xs">
+                        <span className="inline-flex items-center gap-1 font-medium">
+                          <Tag className="h-3 w-3" />
+                          {sub.totals.eligibleDiscount.name}:
+                        </span>
+                        <span className="font-mono font-semibold">
+                          -₹{sub.totals.discountTotal}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex w-64 justify-between text-slate-600">
+                      <span>Tax Total:</span>
+                      <span className="font-mono">₹{sub.totals?.taxTotal}</span>
+                    </div>
+                    <div className="flex w-64 justify-between border-t border-slate-200 pt-1.5 text-base font-bold text-slate-900">
+                      <span>Grand Total:</span>
+                      <span className="font-mono text-indigo-700">
+                        ₹{sub.totals?.grandTotal}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -329,4 +387,3 @@ export default function CustomerPortalSubscriptionDetailPage() {
     </div>
   );
 }
-

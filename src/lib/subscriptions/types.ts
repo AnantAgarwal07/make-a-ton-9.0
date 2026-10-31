@@ -4,6 +4,15 @@ export interface CustomerDTO {
   email: string;
   phone?: string | null;
   address?: string | null;
+  user?: {
+    id: number;
+    email: string;
+    role: string;
+    isActive: boolean;
+  } | null;
+  _count?: {
+    subscriptions?: number;
+  };
 }
 
 export interface PlanDTO {
@@ -44,6 +53,26 @@ export interface TaxDTO {
   type: "PERCENT" | "FIXED";
   rate: string | number;
   isActive: boolean;
+}
+
+export interface DiscountDTO {
+  id: number;
+  name: string;
+  type: "FIXED" | "PERCENT";
+  value: string | number;
+  minPurchase?: string | number | null;
+  minQuantity?: number | null;
+  startDate: string;
+  endDate: string;
+  usageLimit?: number | null;
+  timesUsed: number;
+  scope: "PRODUCT" | "SUBSCRIPTION";
+  isActive: boolean;
+  products?: Array<{
+    discountId: number;
+    productId: number;
+    product?: { id: number; name: string };
+  }>;
 }
 
 export interface QuotationTemplateLineDTO {
@@ -117,6 +146,16 @@ export interface SubscriptionDTO {
   } | null;
   totals: {
     linesSubtotal: string;
+    discountTotal: string;
+    eligibleDiscount?: {
+      id: number;
+      name: string;
+      type: "FIXED" | "PERCENT";
+      value: number;
+      scope: "PRODUCT" | "SUBSCRIPTION";
+      discountAmount: number;
+    } | null;
+    subtotalAfterDiscount: string;
     taxTotal: string;
     planReferencePrice: string;
     grandTotal: string;
@@ -124,6 +163,8 @@ export interface SubscriptionDTO {
   };
   permittedActions: {
     nextStatus: "QUOTATION" | "CONFIRMED" | "ACTIVE" | "CLOSED" | null;
+    canSendQuotation: boolean;
+    canCustomerAccept: boolean;
     canEdit: boolean;
     canPause: boolean;
     canResume: boolean;
@@ -131,4 +172,3 @@ export interface SubscriptionDTO {
     canRenew: boolean;
   };
 }
-

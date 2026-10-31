@@ -22,6 +22,8 @@ export const PAUSE_POLICY_CYCLES: PausePolicyConfig = {
   YEARLY: 2,  // Team-editable starting value: 2 years
 };
 
+export const pausePolicy = PAUSE_POLICY_CYCLES;
+
 export const PAUSE_ACTION_NOTE = "ACTION:PAUSED";
 export const RESUME_ACTION_NOTE = "ACTION:RESUMED";
 export const RENEW_ACTION_NOTE = "ACTION:RENEWED";

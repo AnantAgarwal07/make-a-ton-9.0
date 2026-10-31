@@ -3,7 +3,7 @@ import { requireAuth } from "@/lib/auth";
 import { handleApiError } from "@/lib/api-error";
 import { transitionStatusSchema } from "@/lib/subscriptions/validation";
 import {
-  getSubscriptionById,
+  acceptCustomerQuotation,
   SubscriptionServiceError,
   transitionSubscriptionStatus,
 } from "@/lib/subscriptions/service";
@@ -22,26 +22,34 @@ export async function POST(
     const body = await req.json();
     const { toStatus, note } = transitionStatusSchema.parse(body);
 
-    // If actor is a CUSTOMER, verify ownership and only allow accepting a quotation (QUOTATION -> CONFIRMED)
-    // or closing via the close route
-    if (session.role === "CUSTOMER") {
-      if (!session.customerId) {
-        throw new SubscriptionServiceError("Customer profile not linked", 403, "FORBIDDEN");
-      }
-      await getSubscriptionById(id, { enforceCustomerId: session.customerId });
-      if (toStatus !== "CONFIRMED") {
+    // If transitioning to CONFIRMED, strictly enforce CUSTOMER-only quotation acceptance
+    if (toStatus === "CONFIRMED") {
+      if (session.role !== "CUSTOMER" || !session.customerId) {
         throw new SubscriptionServiceError(
-          "Customers can only accept quotations (transition to CONFIRMED) via this endpoint",
+          "Forbidden: Staff and Admin cannot accept a quotation on a customer's behalf. Only the owning Customer can accept their quotation.",
           403,
-          "FORBIDDEN_TRANSITION"
+          "FORBIDDEN_STAFF_ACCEPTANCE"
         );
       }
+
+      const accepted = await acceptCustomerQuotation({
+        subscriptionId: id,
+        customerUserId: session.userId,
+        customerId: session.customerId,
+        actorRole: session.role,
+        note: note ?? null,
+      });
+
+      return NextResponse.json(accepted);
     }
 
+    // All other transitions go through transitionSubscriptionStatus with role enforcement
     const updated = await transitionSubscriptionStatus({
       subscriptionId: id,
       toStatus,
       changedById: session.userId,
+      actorRole: session.role,
+      actorCustomerId: session.customerId,
       note: note ?? null,
     });
 
@@ -50,4 +58,3 @@ export async function POST(
     return handleApiError(err);
   }
 }
-

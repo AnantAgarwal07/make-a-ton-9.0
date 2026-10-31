@@ -6,15 +6,21 @@ import { useParams } from "next/navigation";
 import { SubscriptionHeader } from "@/components/subscriptions/SubscriptionHeader";
 import { StatusBadge, StatusTimeline } from "@/components/subscriptions/StatusBadge";
 import { SubscriptionDTO, SubscriptionLineDTO } from "@/lib/subscriptions/types";
+import { PAYMENT_TERMS_OPTIONS } from "@/lib/subscriptions/validation";
 import {
   AlertTriangle,
   ArrowLeft,
-  ArrowRightCircle,
   Calendar,
+  Clock,
   Edit3,
+  Eye,
+  Info,
   Pause,
   Play,
   RefreshCw,
+  Send,
+  Tag,
+  X,
   XCircle,
 } from "lucide-react";
 
@@ -28,6 +34,7 @@ export default function SubscriptionDetailPage() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionBusy, setActionBusy] = useState(false);
   const [actionNote, setActionNote] = useState("");
+  const [showQuotationPreview, setShowQuotationPreview] = useState(false);
 
   const loadDetail = useCallback(async () => {
     if (!id) return;
@@ -74,12 +81,17 @@ export default function SubscriptionDetailPage() {
       }
       setSub(data);
       setActionNote("");
+      setShowQuotationPreview(false);
     } catch (err: unknown) {
       setActionError(err instanceof Error ? err.message : "Action failed");
     } finally {
       setActionBusy(false);
     }
   }
+
+  const paymentTermsLabel =
+    PAYMENT_TERMS_OPTIONS.find((o) => o.value === sub?.paymentTermsDays)?.label ??
+    `${sub?.paymentTermsDays ?? 15} days`;
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
@@ -95,20 +107,32 @@ export default function SubscriptionDetailPage() {
             Back to Subscriptions List
           </Link>
 
-          {sub?.permittedActions?.canEdit && (
-            <Link
-              href={`/subscriptions/${sub.id}/edit`}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-xs font-semibold text-slate-800 shadow-sm hover:bg-slate-50"
-            >
-              <Edit3 className="h-3.5 w-3.5" />
-              Edit {sub.status}
-            </Link>
-          )}
+          <div className="flex items-center gap-2.5">
+            {sub && (
+              <button
+                type="button"
+                onClick={() => setShowQuotationPreview(true)}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3.5 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-100"
+              >
+                <Eye className="h-3.5 w-3.5" />
+                Preview Customer Quotation
+              </button>
+            )}
+            {sub?.permittedActions?.canEdit && (
+              <Link
+                href={`/subscriptions/${sub.id}/edit`}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-xs font-semibold text-slate-800 shadow-sm hover:bg-slate-50"
+              >
+                <Edit3 className="h-3.5 w-3.5" />
+                Edit {sub.status}
+              </Link>
+            )}
+          </div>
         </div>
 
         {loading ? (
           <div className="rounded-xl border border-slate-200 bg-white p-10 text-center text-sm text-slate-500">
-            Loading subscription details...
+            Loading subscription details from PostgreSQL...
           </div>
         ) : error || !sub ? (
           <div className="rounded-xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-800">
@@ -145,7 +169,7 @@ export default function SubscriptionDetailPage() {
 
                 <div className="text-right">
                   <div className="text-xs uppercase tracking-wider text-slate-500">
-                    Total Subscription Value
+                    Grand Total (Incl. Tax & Eligible Offer)
                   </div>
                   <div className="font-mono text-2xl font-bold text-indigo-700">
                     ₹{sub.totals?.grandTotal ?? "0.00"}
@@ -173,7 +197,48 @@ export default function SubscriptionDetailPage() {
                     <p className="mt-0.5 text-xs">
                       This quotation was valid until{" "}
                       {new Date(sub.quotationValidUntil).toISOString().slice(0, 10)}.
-                      Per team policy, its status remains QUOTATION and is flagged as Expired.
+                      Its database status remains QUOTATION and it is flagged as Expired so customer acceptance is blocked.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Status-Specific Workflow Banner (Strict BRD v2 Rules #4 & #5) */}
+              {sub.status === "QUOTATION" && !sub.isQuotationExpired && (
+                <div className="mt-4 flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50/70 p-4 text-xs text-blue-900">
+                  <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-semibold">Awaiting Customer Acceptance in Portal</p>
+                    <p className="mt-0.5">
+                      Per business rules, Staff and Admin cannot accept a quotation on a customer&apos;s behalf.{" "}
+                      <strong>{sub.customer?.name}</strong> must sign in to the Customer Portal (
+                      <Link href={`/portal/subscriptions/${sub.id}`} className="underline font-semibold">
+                        /portal/subscriptions/{sub.id}
+                      </Link>
+                      ) to review and click <strong>Accept Quotation</strong>.
+                      {!sub.customer?.user && (
+                        <span className="ml-1 font-semibold text-amber-800">
+                          (Note: This customer does not yet have a linked login account — enable/link their login on the Customers screen before they can sign in.)
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {sub.status === "CONFIRMED" && (
+                <div className="mt-4 flex items-start gap-3 rounded-lg border border-indigo-200 bg-indigo-50/70 p-4 text-xs text-indigo-900">
+                  <Clock className="h-4 w-4 text-indigo-600 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-semibold">
+                      Customer Accepted — Scheduled for Automatic Activation on Start Date
+                    </p>
+                    <p className="mt-0.5">
+                      The customer has accepted this quotation. The system automatically transitions CONFIRMED subscriptions to ACTIVE when their start date (
+                      <span className="font-mono font-semibold">
+                        {new Date(sub.startDate).toISOString().slice(0, 10)}
+                      </span>
+                      ) is reached. Staff/Admin do not manually activate subscriptions.
                     </p>
                   </div>
                 </div>
@@ -203,10 +268,10 @@ export default function SubscriptionDetailPage() {
               </div>
             </div>
 
-            {/* Action Controls */}
+            {/* Staff/Admin Permitted Actions Bar */}
             <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
               <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-600">
-                Lifecycle Transitions & Permitted Actions
+                Staff / Admin Controls & Plan-Allowed Actions
               </h2>
 
               {actionError && (
@@ -218,31 +283,28 @@ export default function SubscriptionDetailPage() {
               <div className="flex flex-wrap items-center gap-3">
                 <input
                   type="text"
-                  placeholder="Optional note for history log..."
+                  placeholder="Optional note for status history..."
                   value={actionNote}
                   onChange={(e) => setActionNote(e.target.value)}
                   className="w-full sm:w-72 rounded-lg border border-slate-300 px-3 py-2 text-xs text-slate-900 focus:border-indigo-500 focus:outline-none"
                 />
 
-                {/* Next Linear Status Transition Button (except ACTIVE->CLOSED which uses Close rule) */}
-                {sub.permittedActions?.nextStatus &&
-                  sub.permittedActions.nextStatus !== "CLOSED" && (
-                    <button
-                      type="button"
-                      disabled={actionBusy}
-                      onClick={() =>
-                        performAction(`/api/subscriptions/${sub.id}/transition`, {
-                          toStatus: sub.permittedActions.nextStatus,
-                        })
-                      }
-                      className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50"
-                    >
-                      <ArrowRightCircle className="h-4 w-4" />
-                      {sub.status === "DRAFT" && "Send as Quotation (→ QUOTATION)"}
-                      {sub.status === "QUOTATION" && "Record Acceptance (→ CONFIRMED)"}
-                      {sub.status === "CONFIRMED" && "Activate Subscription (→ ACTIVE)"}
-                    </button>
-                  )}
+                {/* Step 2: Staff/Admin can ONLY send a DRAFT as a QUOTATION */}
+                {sub.status === "DRAFT" && (
+                  <button
+                    type="button"
+                    disabled={actionBusy}
+                    onClick={() =>
+                      performAction(`/api/subscriptions/${sub.id}/transition`, {
+                        toStatus: "QUOTATION",
+                      })
+                    }
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50"
+                  >
+                    <Send className="h-4 w-4" />
+                    Send Quotation to Customer (→ QUOTATION)
+                  </button>
+                )}
 
                 {sub.permittedActions?.canPause && (
                   <button
@@ -310,17 +372,20 @@ export default function SubscriptionDetailPage() {
                 <span className="font-medium text-slate-700">
                   Auto-Close at Expiry: {sub.plan?.autoClose ? "Yes" : "No"}
                 </span>
+                <span>•</span>
+                <span className="text-slate-400">
+                  Portal delivery: Visible in Customer Portal (Email service not configured in P1)
+                </span>
               </div>
             </div>
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
               {/* Left 2 Columns: Schedule & Lines */}
               <div className="lg:col-span-2 space-y-6">
-                {/* Key Dates & Billing Hand-off */}
                 <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
                   <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-900 mb-4">
                     <Calendar className="h-4 w-4 text-indigo-600" />
-                    Dates & P4 Billing Hand-off
+                    Dates, Payment Terms & P4 Billing Hand-off
                   </h3>
                   <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3 text-sm">
                     <div className="rounded-lg bg-slate-50 p-3">
@@ -342,13 +407,13 @@ export default function SubscriptionDetailPage() {
                       <dd className="mt-1 font-mono font-bold text-indigo-900">
                         {sub.nextInvoiceDate
                           ? new Date(sub.nextInvoiceDate).toISOString().slice(0, 10)
-                          : "Not Active Yet"}
+                          : "Initialized on Activation"}
                       </dd>
                     </div>
                     <div className="rounded-lg bg-slate-50 p-3">
                       <dt className="text-xs text-slate-500">Payment Terms</dt>
                       <dd className="mt-1 font-semibold text-slate-900">
-                        {sub.paymentTermsDays} days
+                        {paymentTermsLabel} ({sub.paymentTermsDays}d)
                       </dd>
                     </div>
                     <div className="rounded-lg bg-slate-50 p-3">
@@ -416,8 +481,8 @@ export default function SubscriptionDetailPage() {
                               {line.tax
                                 ? `${line.tax.name} (${
                                     line.tax.type === "PERCENT"
-                                      ? `${line.tax.rate}%`
-                                      : `₹${line.tax.rate}`
+                                      ? `${Number(line.tax.rate)}%`
+                                      : `₹${Number(line.tax.rate)}`
                                   })`
                                 : "—"}
                             </td>
@@ -430,20 +495,31 @@ export default function SubscriptionDetailPage() {
                     </table>
                   </div>
 
-                  <div className="border-t border-slate-100 bg-slate-50/60 px-6 py-4 flex flex-col items-end space-y-1 text-sm">
-                    <div className="flex w-64 justify-between text-slate-600">
+                  <div className="border-t border-slate-100 bg-slate-50/60 px-6 py-4 flex flex-col items-end space-y-1.5 text-sm">
+                    <div className="flex w-72 justify-between text-slate-600">
                       <span>Lines Subtotal:</span>
                       <span className="font-mono">₹{sub.totals?.linesSubtotal}</span>
                     </div>
-                    <div className="flex w-64 justify-between text-slate-600">
+                    {sub.totals?.eligibleDiscount && (
+                      <div className="flex w-72 justify-between text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded text-xs">
+                        <span className="inline-flex items-center gap-1 font-medium">
+                          <Tag className="h-3 w-3" />
+                          {sub.totals.eligibleDiscount.name}:
+                        </span>
+                        <span className="font-mono font-semibold">
+                          -₹{sub.totals.discountTotal}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex w-72 justify-between text-slate-600">
                       <span>Tax Total:</span>
                       <span className="font-mono">₹{sub.totals?.taxTotal}</span>
                     </div>
-                    <div className="flex w-64 justify-between text-xs text-slate-400">
-                      <span>Plan Reference Price:</span>
+                    <div className="flex w-72 justify-between text-xs text-slate-400">
+                      <span>Plan Reference Price (Not double-counted):</span>
                       <span className="font-mono">₹{sub.totals?.planReferencePrice}</span>
                     </div>
-                    <div className="flex w-64 justify-between border-t border-slate-200 pt-1.5 text-base font-bold text-slate-900">
+                    <div className="flex w-72 justify-between border-t border-slate-200 pt-1.5 text-base font-bold text-slate-900">
                       <span>Grand Total:</span>
                       <span className="font-mono text-indigo-700">
                         ₹{sub.totals?.grandTotal}
@@ -461,10 +537,152 @@ export default function SubscriptionDetailPage() {
                 <StatusTimeline history={sub.history || []} />
               </div>
             </div>
+
+            {/* Quotation Preview Modal */}
+            {showQuotationPreview && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
+                <div className="w-full max-w-2xl rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
+                  <div className="flex items-start justify-between border-b border-slate-100 pb-4">
+                    <div>
+                      <span className="inline-block rounded bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-indigo-700">
+                        Quotation Offer Preview
+                      </span>
+                      <h3 className="mt-1 text-xl font-bold text-slate-900">
+                        {sub.number} — Prepared for {sub.customer?.name}
+                      </h3>
+                      <p className="text-xs text-slate-500">
+                        {sub.customer?.email} {sub.customer?.phone ? `• ${sub.customer.phone}` : ""}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowQuotationPreview(false)}
+                      className="rounded-lg p-1 text-slate-400 hover:bg-slate-100"
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 rounded-xl bg-slate-50 p-4 text-xs sm:grid-cols-4">
+                    <div>
+                      <span className="text-slate-500 block">Plan</span>
+                      <strong className="text-slate-900">
+                        {sub.plan?.name} ({sub.plan?.billingPeriod})
+                      </strong>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 block">Service Period</span>
+                      <strong className="font-mono text-slate-900">
+                        {new Date(sub.startDate).toISOString().slice(0, 10)} →{" "}
+                        {new Date(sub.expiryDate).toISOString().slice(0, 10)}
+                      </strong>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 block">Payment Terms</span>
+                      <strong className="text-slate-900">{paymentTermsLabel}</strong>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 block">Offer Valid Until</span>
+                      <strong className="font-mono text-slate-900">
+                        {sub.quotationValidUntil
+                          ? new Date(sub.quotationValidUntil).toISOString().slice(0, 10)
+                          : "30 days from send"}
+                      </strong>
+                    </div>
+                  </div>
+
+                  <table className="min-w-full divide-y divide-slate-200 text-left text-xs">
+                    <thead className="bg-slate-50 font-semibold uppercase text-slate-500">
+                      <tr>
+                        <th className="px-3 py-2">Item</th>
+                        <th className="px-3 py-2 text-right">Qty</th>
+                        <th className="px-3 py-2 text-right">Agreed Unit Price</th>
+                        <th className="px-3 py-2">Tax</th>
+                        <th className="px-3 py-2 text-right">Line Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {sub.lines?.map((line) => (
+                        <tr key={line.id}>
+                          <td className="px-3 py-2.5 font-medium text-slate-900">
+                            {line.product?.name}
+                            {line.variant && (
+                              <span className="block text-[11px] text-slate-500">
+                                {line.variant.attribute}: {line.variant.value}
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-3 py-2.5 text-right font-mono">{line.quantity}</td>
+                          <td className="px-3 py-2.5 text-right font-mono">
+                            ₹{Number(line.unitPrice).toFixed(2)}
+                          </td>
+                          <td className="px-3 py-2.5 text-slate-600">
+                            {line.tax ? line.tax.name : "—"}
+                          </td>
+                          <td className="px-3 py-2.5 text-right font-mono font-semibold">
+                            ₹{Number(line.amount).toFixed(2)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+
+                  <div className="border-t border-slate-100 pt-3 flex flex-col items-end space-y-1 text-xs">
+                    <div className="flex w-60 justify-between">
+                      <span className="text-slate-600">Subtotal:</span>
+                      <span className="font-mono">₹{sub.totals?.linesSubtotal}</span>
+                    </div>
+                    {sub.totals?.eligibleDiscount && (
+                      <div className="flex w-60 justify-between text-emerald-700 font-medium">
+                        <span>Discount ({sub.totals.eligibleDiscount.name}):</span>
+                        <span className="font-mono">-₹{sub.totals.discountTotal}</span>
+                      </div>
+                    )}
+                    <div className="flex w-60 justify-between">
+                      <span className="text-slate-600">Tax:</span>
+                      <span className="font-mono">₹{sub.totals?.taxTotal}</span>
+                    </div>
+                    <div className="flex w-60 justify-between border-t border-slate-200 pt-1 text-sm font-bold text-slate-900">
+                      <span>Total Payable:</span>
+                      <span className="font-mono text-indigo-700">₹{sub.totals?.grandTotal}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between border-t border-slate-100 pt-4">
+                    <span className="text-xs text-slate-500">
+                      Portal delivery: Offer becomes immediately visible in the Customer Portal upon sending.
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setShowQuotationPreview(false)}
+                        className="rounded-lg border border-slate-300 px-3.5 py-2 text-xs font-medium text-slate-700"
+                      >
+                        Close Preview
+                      </button>
+                      {sub.status === "DRAFT" && (
+                        <button
+                          type="button"
+                          disabled={actionBusy}
+                          onClick={() =>
+                            performAction(`/api/subscriptions/${sub.id}/transition`, {
+                              toStatus: "QUOTATION",
+                            })
+                          }
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-700"
+                        >
+                          <Send className="h-3.5 w-3.5" />
+                          Send Quotation Now
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </>
         )}
       </main>
     </div>
   );
 }
-

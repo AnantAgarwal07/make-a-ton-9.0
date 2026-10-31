@@ -3,7 +3,14 @@
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Layers, PlusCircle, ShieldCheck, UserCheck } from "lucide-react";
+import {
+  Boxes,
+  Layers,
+  PlusCircle,
+  ShieldCheck,
+  UserCheck,
+  Users,
+} from "lucide-react";
 
 interface UserOption {
   id: number;
@@ -78,12 +85,12 @@ export function SubscriptionHeader() {
             <div>
               <span className="text-base tracking-tight">Brightloop</span>
               <span className="ml-2 rounded bg-indigo-50 px-1.5 py-0.5 text-xs font-medium text-indigo-700">
-                P3 Subscriptions
+                Subscriptions
               </span>
             </div>
           </Link>
 
-          <nav className="flex items-center gap-1 text-sm font-medium">
+          <nav className="flex flex-wrap items-center gap-1 text-sm font-medium">
             <Link
               href="/subscriptions"
               className={`rounded-md px-3 py-1.5 transition ${
@@ -92,7 +99,7 @@ export function SubscriptionHeader() {
                   : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
               }`}
             >
-              Staff Subscriptions
+              Subscriptions
             </Link>
             <Link
               href="/subscriptions/new"
@@ -106,6 +113,28 @@ export function SubscriptionHeader() {
               New Subscription
             </Link>
             <Link
+              href="/customers"
+              className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 transition ${
+                pathname.startsWith("/customers")
+                  ? "bg-slate-900 text-white"
+                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+              }`}
+            >
+              <Users className="h-4 w-4" />
+              Customers
+            </Link>
+            <Link
+              href="/catalog"
+              className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 transition ${
+                pathname.startsWith("/catalog")
+                  ? "bg-slate-900 text-white"
+                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+              }`}
+            >
+              <Boxes className="h-4 w-4" />
+              Catalog & Pricing (Admin)
+            </Link>
+            <Link
               href="/portal/subscriptions"
               className={`rounded-md px-3 py-1.5 transition ${
                 pathname.startsWith("/portal")
@@ -113,7 +142,7 @@ export function SubscriptionHeader() {
                   : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
               }`}
             >
-              Customer Portal (My Subscriptions)
+              Customer Portal
             </Link>
           </nav>
         </div>

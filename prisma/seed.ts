@@ -114,6 +114,25 @@ async function main() {
     });
   }
 
+  const existingFixedDiscount = await prisma.discount.findFirst({
+    where: { name: "Enterprise Flat ₹1000 Off" },
+  });
+  if (!existingFixedDiscount) {
+    await prisma.discount.create({
+      data: {
+        name: "Enterprise Flat ₹1000 Off",
+        type: "FIXED",
+        value: 1000,
+        minPurchase: 3000,
+        minQuantity: 2,
+        startDate: new Date("2026-01-01"),
+        endDate: new Date("2027-12-31"),
+        usageLimit: 50,
+        scope: "SUBSCRIPTION",
+      },
+    });
+  }
+
   // P2 Products: one with a priced variant, one without variants
   const crmProduct = await ensureProduct({
     name: "Brightloop CRM",

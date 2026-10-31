@@ -1,4 +1,4 @@
-import { Prisma, PrismaClient, SubscriptionStatus } from "@prisma/client";
+import { Prisma, PrismaClient, Role, SubscriptionStatus } from "@prisma/client";
 import { prisma as defaultPrisma } from "../prisma";
 import {
   calculateDefaultUnitPrice,
@@ -14,6 +14,7 @@ import {
   RENEW_ACTION_NOTE,
   RESUME_ACTION_NOTE,
 } from "./pause-policy";
+import { CandidateDiscountInput } from "@/lib/catalog/discount";
 
 export class SubscriptionServiceError extends Error {
   statusCode: number;
@@ -49,7 +50,6 @@ export function isAllowedStatusTransition(
 export async function generateNextSubscriptionNumber(
   db: PrismaClient | Prisma.TransactionClient = defaultPrisma
 ): Promise<string> {
-  // Using raw atomic PostgreSQL upsert to guarantee concurrency safety even outside serializable tx
   const rows = await db.$queryRaw<Array<{ value: number }>>`
     INSERT INTO "Counter" ("key", "value")
     VALUES ('SUB', 1)
@@ -63,7 +63,7 @@ export async function generateNextSubscriptionNumber(
 
 /**
  * Computes whether a subscription in QUOTATION status is expired based on quotationValidUntil.
- * Does NOT alter the SubscriptionStatus enum.
+ * EXPIRED is a derived display/validation condition, NOT a new SubscriptionStatus enum value.
  */
 export function isQuotationExpired(
   status: SubscriptionStatus,
@@ -78,18 +78,11 @@ export function isQuotationExpired(
 
 /**
  * Initializes nextInvoiceDate when a subscription transitions to ACTIVE.
- * - If startDate is in the future relative to activationDate, initializes to startDate.
- * - If subscription starts immediately (or startDate <= activationDate), initializes to startDate
- *   (or activationDate if startDate is in the past; per PRD Section 7: "normally the start date for advance billing,
- *   or if start date is in the future, initialize to that future start date").
  */
 export function computeInitialNextInvoiceDate(
   startDate: Date,
   activationDate: Date = new Date()
 ): Date {
-  // Per PRD Section 7:
-  // - If the subscription starts immediately, initialize it to the agreed first billing date (normally the start date for advance billing).
-  // - If the start date is in the future, initialize it to that future start date.
   if (startDate.getTime() > activationDate.getTime()) {
     return new Date(startDate.getTime());
   }
@@ -98,10 +91,10 @@ export function computeInitialNextInvoiceDate(
 
 /**
  * Enriches a subscription record with computed fields:
- * - isQuotationExpired (boolean flag without changing status enum)
+ * - isQuotationExpired (derived boolean flag without changing status enum)
  * - pauseEvaluation (elapsed pause duration, maxPauseUntil, limitReached, warningMessage)
- * - totals (linesSubtotal, taxTotal, planReferencePrice, grandTotal)
- * - permittedActions (which lifecycle transitions & actions are currently allowed)
+ * - totals (linesSubtotal, discountTotal, eligibleDiscount via P2's shared function, taxTotal, grandTotal)
+ * - permittedActions (role-aware and plan-flag-aware lifecycle controls)
  */
 export function enrichSubscription<
   T extends {
@@ -116,7 +109,9 @@ export function enrichSubscription<
       renewable?: boolean;
     } | null;
     lines?: Array<{
+      productId?: number;
       quantity: number;
+      unitPrice?: Prisma.Decimal | number | string;
       amount: Prisma.Decimal | number | string;
       tax?: {
         type: "PERCENT" | "FIXED";
@@ -128,7 +123,11 @@ export function enrichSubscription<
   }
 >(
   sub: T,
-  options?: { asOfDate?: Date; pausePolicyOverride?: PausePolicyConfig }
+  options?: {
+    asOfDate?: Date;
+    pausePolicyOverride?: PausePolicyConfig;
+    candidateDiscounts?: CandidateDiscountInput[];
+  }
 ) {
   const asOfDate = options?.asOfDate ?? new Date();
   const quotationExpired = isQuotationExpired(sub.status, sub.quotationValidUntil, asOfDate);
@@ -146,9 +145,13 @@ export function enrichSubscription<
   const totals = calculateSubscriptionTotals({
     lines: sub.lines ?? [],
     planPrice: sub.plan?.price ?? 0,
+    candidateDiscounts: options?.candidateDiscounts,
+    evaluationDate: asOfDate,
   });
 
   const nextAllowedStatus = ALLOWED_NEXT_STATUS[sub.status as SubscriptionStatus];
+  const canSendQuotation = sub.status === "DRAFT";
+  const canCustomerAccept = sub.status === "QUOTATION" && !quotationExpired;
   const canPause =
     sub.status === "ACTIVE" && !sub.isPaused && Boolean(sub.plan?.pausable);
   const canResume =
@@ -166,6 +169,8 @@ export function enrichSubscription<
     totals,
     permittedActions: {
       nextStatus: nextAllowedStatus,
+      canSendQuotation,
+      canCustomerAccept,
       canEdit,
       canPause,
       canResume,
@@ -176,7 +181,13 @@ export function enrichSubscription<
 }
 
 export const SUBSCRIPTION_INCLUDE = {
-  customer: true,
+  customer: {
+    include: {
+      user: {
+        select: { id: true, email: true, role: true, isActive: true },
+      },
+    },
+  },
   plan: true,
   lines: {
     include: {
@@ -190,6 +201,37 @@ export const SUBSCRIPTION_INCLUDE = {
     orderBy: [{ changedAt: "desc" as const }, { id: "desc" as const }],
   },
 };
+
+async function fetchActiveCandidateDiscounts(
+  db: PrismaClient | Prisma.TransactionClient
+): Promise<CandidateDiscountInput[]> {
+  if (!("discount" in db) || typeof (db as PrismaClient).discount?.findMany !== "function") {
+    return [];
+  }
+  try {
+    const rows = await (db as PrismaClient).discount.findMany({
+      where: { isActive: true },
+      include: { products: true },
+    });
+    return rows.map((d) => ({
+      id: d.id,
+      name: d.name,
+      type: d.type,
+      value: d.value,
+      minPurchase: d.minPurchase,
+      minQuantity: d.minQuantity,
+      startDate: d.startDate,
+      endDate: d.endDate,
+      usageLimit: d.usageLimit,
+      timesUsed: d.timesUsed,
+      scope: d.scope,
+      isActive: d.isActive,
+      products: d.products,
+    }));
+  } catch {
+    return [];
+  }
+}
 
 /**
  * Validates plan availability dates, minimum quantities, products, variants, and taxes,
@@ -337,7 +379,7 @@ export interface CreateSubscriptionInput {
 }
 
 /**
- * Creates a new DRAFT subscription (optionally pre-filled from a P2 QuotationTemplate),
+ * Creates a new DRAFT subscription from a blank form (or optional template),
  * generates a sequential SUB-xxxxxx number, stores lines with Decimal amounts,
  * and writes the initial SubscriptionStatusHistory entry.
  */
@@ -416,42 +458,44 @@ export async function createSubscription(
 
   const number = await generateNextSubscriptionNumber(db);
 
-  const created = await db.$transaction(async (tx) => {
-    const sub = await tx.subscription.create({
-      data: {
-        number,
-        customerId: customer.id,
-        planId: plan.id,
-        status: "DRAFT",
-        isPaused: false,
-        startDate: input.startDate,
-        expiryDate: input.expiryDate,
-        paymentTermsDays: input.paymentTermsDays ?? 15,
-        quotationValidUntil: resolvedQuotationValidUntil,
-        createdById: input.createdById ?? null,
-        lines: {
-          create: preparedLines,
-        },
-        history: {
-          create: {
-            fromStatus: null,
-            toStatus: "DRAFT",
-            changedById: input.createdById ?? null,
-            note: input.note ?? (input.templateId ? `Created Draft from Template #${input.templateId}` : "Created Draft subscription"),
-          },
+  const created = await db.subscription.create({
+    data: {
+      number,
+      customerId: customer.id,
+      planId: plan.id,
+      status: "DRAFT",
+      isPaused: false,
+      startDate: input.startDate,
+      expiryDate: input.expiryDate,
+      paymentTermsDays: input.paymentTermsDays ?? 15,
+      quotationValidUntil: resolvedQuotationValidUntil,
+      createdById: input.createdById ?? null,
+      lines: {
+        create: preparedLines,
+      },
+      history: {
+        create: {
+          fromStatus: null,
+          toStatus: "DRAFT",
+          changedById: input.createdById ?? null,
+          note:
+            input.note ??
+            (input.templateId
+              ? `Created Draft from Template #${input.templateId}`
+              : "Created Draft subscription"),
         },
       },
-      include: SUBSCRIPTION_INCLUDE,
-    });
-    return sub;
+    },
+    include: SUBSCRIPTION_INCLUDE,
   });
 
-  return enrichSubscription(created);
+  const candidateDiscounts = await fetchActiveCandidateDiscounts(db);
+  return enrichSubscription(created, { candidateDiscounts });
 }
 
 /**
- * Updates an existing subscription while in DRAFT or QUOTATION status.
- * Rejects unsafe edits to CONFIRMED, ACTIVE, or CLOSED subscriptions.
+ * Updates an existing subscription while in DRAFT (or QUOTATION revision flow).
+ * Rejects edits to CONFIRMED, ACTIVE, or CLOSED subscriptions.
  */
 export async function updateSubscription(
   subscriptionId: number,
@@ -530,58 +574,67 @@ export async function updateSubscription(
     lines: linesToValidate,
   });
 
-  const updated = await db.$transaction(async (tx) => {
-    if (input.lines) {
-      await tx.subscriptionLine.deleteMany({ where: { subscriptionId } });
-    }
-
-    return tx.subscription.update({
-      where: { id: subscriptionId },
-      data: {
-        customerId: nextCustomerId,
-        planId: nextPlanId,
-        startDate: nextStartDate,
-        expiryDate: nextExpiryDate,
-        paymentTermsDays: input.paymentTermsDays ?? existing.paymentTermsDays,
-        quotationValidUntil:
-          input.quotationValidUntil !== undefined
-            ? input.quotationValidUntil
-            : existing.quotationValidUntil,
-        ...(input.lines
-          ? {
-              lines: {
-                create: preparedLines,
-              },
-            }
-          : {}),
-      },
-      include: SUBSCRIPTION_INCLUDE,
-    });
+  const updated = await db.subscription.update({
+    where: { id: subscriptionId },
+    data: {
+      customerId: nextCustomerId,
+      planId: nextPlanId,
+      startDate: nextStartDate,
+      expiryDate: nextExpiryDate,
+      paymentTermsDays: input.paymentTermsDays ?? existing.paymentTermsDays,
+      quotationValidUntil:
+        input.quotationValidUntil !== undefined
+          ? input.quotationValidUntil
+          : existing.quotationValidUntil,
+      ...(input.lines
+        ? {
+            lines: {
+              deleteMany: {},
+              create: preparedLines,
+            },
+          }
+        : {}),
+    },
+    include: SUBSCRIPTION_INCLUDE,
   });
 
-  return enrichSubscription(updated);
+  const candidateDiscounts = await fetchActiveCandidateDiscounts(db);
+  return enrichSubscription(updated, { candidateDiscounts });
 }
 
 /**
- * CENTRAL STATUS TRANSITION FUNCTION (PRD Section 4)
+ * CENTRAL STATUS TRANSITION FUNCTION (BRD v2 Sections 6 & 7)
  *
  * Enforces the strict linear flow:
  *   DRAFT -> QUOTATION -> CONFIRMED -> ACTIVE -> CLOSED
  *
- * Every status transition across API routes, UI actions, close actions, and auto-close
- * MUST go through this function. Writes an append-only row to SubscriptionStatusHistory.
+ * Also enforces role-based transition rules when `actorRole` is provided:
+ * - DRAFT -> QUOTATION: ADMIN or STAFF only
+ * - QUOTATION -> CONFIRMED: Owning CUSTOMER only (Staff/Admin receive 403 Forbidden)
+ * - CONFIRMED -> ACTIVE: System activation when startDate is reached (Staff/Admin manual activation receives 403)
+ * - ACTIVE -> CLOSED: ADMIN, STAFF, Owning CUSTOMER (if Plan.closable), or SYSTEM (autoClose)
  */
 export async function transitionSubscriptionStatus(
   params: {
     subscriptionId: number;
     toStatus: SubscriptionStatus;
     changedById?: number | null;
+    actorRole?: Role | "SYSTEM";
+    actorCustomerId?: number | null;
     note?: string | null;
     activationDate?: Date;
   },
   db: PrismaClient = defaultPrisma
 ) {
-  const { subscriptionId, toStatus, changedById = null, note = null, activationDate = new Date() } = params;
+  const {
+    subscriptionId,
+    toStatus,
+    changedById = null,
+    actorRole,
+    actorCustomerId,
+    note = null,
+    activationDate = new Date(),
+  } = params;
 
   const sub = await db.subscription.findUnique({
     where: { id: subscriptionId },
@@ -604,54 +657,208 @@ export async function transitionSubscriptionStatus(
     );
   }
 
+  // Enforce role-specific transition permissions when actorRole is supplied
+  if (actorRole) {
+    if (toStatus === "QUOTATION") {
+      if (actorRole !== "ADMIN" && actorRole !== "STAFF") {
+        throw new SubscriptionServiceError(
+          "Forbidden: Only Staff or Admin can send a quotation",
+          403,
+          "FORBIDDEN_ROLE"
+        );
+      }
+    } else if (toStatus === "CONFIRMED") {
+      // Critical BRD v2 Rule #4 & #5: Only the owning CUSTOMER can accept a quotation.
+      // Staff and Admin must NEVER accept on a customer's behalf (returns 403).
+      if (actorRole !== "CUSTOMER") {
+        throw new SubscriptionServiceError(
+          "Forbidden: Staff and Admin cannot accept a quotation on a customer's behalf. Only the owning Customer can accept their quotation in the Customer Portal.",
+          403,
+          "FORBIDDEN_STAFF_ACCEPTANCE"
+        );
+      }
+      if (!actorCustomerId || actorCustomerId !== sub.customerId) {
+        throw new SubscriptionServiceError(
+          "Forbidden: You can only accept quotations belonging to your own customer account",
+          403,
+          "FORBIDDEN_OWNERSHIP"
+        );
+      }
+      if (isQuotationExpired(sub.status, sub.quotationValidUntil, activationDate)) {
+        throw new SubscriptionServiceError(
+          "Cannot accept this quotation because its validity date has expired",
+          400,
+          "QUOTATION_EXPIRED"
+        );
+      }
+    } else if (toStatus === "ACTIVE") {
+      // Critical BRD v2 Rule #5: System activates when startDate is reached; Staff/Admin cannot manually activate.
+      if (actorRole !== "SYSTEM") {
+        throw new SubscriptionServiceError(
+          "Forbidden: Manual activation by Staff or Admin is not permitted. Subscriptions activate automatically when their start date is reached.",
+          403,
+          "FORBIDDEN_MANUAL_ACTIVATION"
+        );
+      }
+    }
+  }
+
   const updateData: Prisma.SubscriptionUpdateInput = {
     status: toStatus,
   };
 
-  // When transitioning to QUOTATION, if quotationValidUntil is not set, default to 30 days
   if (toStatus === "QUOTATION" && !sub.quotationValidUntil) {
     const validUntil = new Date(activationDate.getTime());
     validUntil.setUTCDate(validUntil.getUTCDate() + 30);
     updateData.quotationValidUntil = validUntil;
   }
 
-  // When transitioning to ACTIVE, initialize nextInvoiceDate for P4 hand-off
   if (toStatus === "ACTIVE") {
     updateData.nextInvoiceDate = computeInitialNextInvoiceDate(sub.startDate, activationDate);
     updateData.isPaused = false;
   }
 
-  // When transitioning to CLOSED, ensure isPaused is cleared
   if (toStatus === "CLOSED") {
     updateData.isPaused = false;
   }
 
-  const updated = await db.$transaction(async (tx) => {
-    const updatedSub = await tx.subscription.update({
-      where: { id: subscriptionId },
-      data: {
-        ...updateData,
-        history: {
-          create: {
-            fromStatus,
-            toStatus,
-            changedById,
-            note: note ?? `Status changed from ${fromStatus} to ${toStatus}`,
-            changedAt: activationDate,
-          },
+  const updated = await db.subscription.update({
+    where: { id: subscriptionId },
+    data: {
+      ...updateData,
+      history: {
+        create: {
+          fromStatus,
+          toStatus,
+          changedById: actorRole === "SYSTEM" ? null : changedById,
+          note: note ?? `Status changed from ${fromStatus} to ${toStatus}`,
+          changedAt: activationDate,
         },
       },
-      include: SUBSCRIPTION_INCLUDE,
-    });
-    return updatedSub;
+    },
+    include: SUBSCRIPTION_INCLUDE,
   });
 
-  return enrichSubscription(updated);
+  const candidateDiscounts = await fetchActiveCandidateDiscounts(db);
+  return enrichSubscription(updated, { asOfDate: activationDate, candidateDiscounts });
+}
+
+/**
+ * Customer Quotation Acceptance Service (BRD v2 Section 6 Step 3)
+ *
+ * - Strictly requires role = CUSTOMER and ownership (sub.customerId === customerId)
+ * - Verifies status === QUOTATION and that quotationValidUntil has not passed
+ * - Transitions QUOTATION -> CONFIRMED and logs customer user ID in SubscriptionStatusHistory
+ * - If startDate <= acceptanceDate, automatically invokes system activation (CONFIRMED -> ACTIVE)
+ *   with changedById = null and note = "SYSTEM:START_DATE_REACHED", initializing nextInvoiceDate.
+ * - If startDate > acceptanceDate, leaves status as CONFIRMED until `activateConfirmedSubscriptions` runs on startDate.
+ */
+export async function acceptCustomerQuotation(
+  params: {
+    subscriptionId: number;
+    customerUserId: number;
+    customerId: number;
+    actorRole: Role;
+    note?: string | null;
+    acceptedAt?: Date;
+  },
+  db: PrismaClient = defaultPrisma
+) {
+  const {
+    subscriptionId,
+    customerUserId,
+    customerId,
+    actorRole,
+    note = null,
+    acceptedAt = new Date(),
+  } = params;
+
+  if (actorRole !== "CUSTOMER") {
+    throw new SubscriptionServiceError(
+      "Forbidden: Only the owning Customer can accept a quotation. Staff and Admin cannot accept on the customer's behalf.",
+      403,
+      "FORBIDDEN_STAFF_ACCEPTANCE"
+    );
+  }
+
+  const confirmedSub = await transitionSubscriptionStatus(
+    {
+      subscriptionId,
+      toStatus: "CONFIRMED",
+      changedById: customerUserId,
+      actorRole: "CUSTOMER",
+      actorCustomerId: customerId,
+      note: note ?? "Customer accepted quotation offer in portal",
+      activationDate: acceptedAt,
+    },
+    db
+  );
+
+  // Step 4: If startDate is today or in the past, system activates it immediately
+  if (new Date(confirmedSub.startDate).getTime() <= acceptedAt.getTime()) {
+    return transitionSubscriptionStatus(
+      {
+        subscriptionId,
+        toStatus: "ACTIVE",
+        changedById: null,
+        actorRole: "SYSTEM",
+        note: "SYSTEM:START_DATE_REACHED",
+        activationDate: acceptedAt,
+      },
+      db
+    );
+  }
+
+  return confirmedSub;
+}
+
+/**
+ * Idempotent System Activation Function (BRD v2 Section 6 Step 4)
+ *
+ * Transitions all CONFIRMED subscriptions whose startDate <= asOfDate to ACTIVE,
+ * records `changedById = null` and `note = "SYSTEM:START_DATE_REACHED"` in SubscriptionStatusHistory,
+ * and initializes `nextInvoiceDate`.
+ */
+export async function activateConfirmedSubscriptions(
+  asOfDate: Date = new Date(),
+  db: PrismaClient = defaultPrisma
+) {
+  const dueConfirmed = await db.subscription.findMany({
+    where: {
+      status: "CONFIRMED",
+      startDate: {
+        lte: asOfDate,
+      },
+    },
+    select: { id: true, number: true },
+  });
+
+  const activated = [];
+  for (const sub of dueConfirmed) {
+    const res = await transitionSubscriptionStatus(
+      {
+        subscriptionId: sub.id,
+        toStatus: "ACTIVE",
+        changedById: null,
+        actorRole: "SYSTEM",
+        note: "SYSTEM:START_DATE_REACHED",
+        activationDate: asOfDate,
+      },
+      db
+    );
+    activated.push(res);
+  }
+
+  return {
+    asOfDate,
+    activatedCount: activated.length,
+    activatedIds: activated.map((s) => s.id),
+    activatedNumbers: activated.map((s) => s.number),
+  };
 }
 
 /**
  * Pauses an ACTIVE subscription if Plan.pausable = true.
- * Records ACTION:PAUSED in SubscriptionStatusHistory without changing SubscriptionStatus enum.
  */
 export async function pauseSubscription(
   params: {
@@ -699,31 +906,29 @@ export async function pauseSubscription(
 
   const formattedNote = note ? `${PAUSE_ACTION_NOTE} - ${note}` : PAUSE_ACTION_NOTE;
 
-  const updated = await db.$transaction(async (tx) => {
-    return tx.subscription.update({
-      where: { id: subscriptionId },
-      data: {
-        isPaused: true,
-        history: {
-          create: {
-            fromStatus: sub.status,
-            toStatus: sub.status,
-            changedById,
-            note: formattedNote,
-            changedAt: pausedAt,
-          },
+  const updated = await db.subscription.update({
+    where: { id: subscriptionId },
+    data: {
+      isPaused: true,
+      history: {
+        create: {
+          fromStatus: sub.status,
+          toStatus: sub.status,
+          changedById,
+          note: formattedNote,
+          changedAt: pausedAt,
         },
       },
-      include: SUBSCRIPTION_INCLUDE,
-    });
+    },
+    include: SUBSCRIPTION_INCLUDE,
   });
 
-  return enrichSubscription(updated, { asOfDate: pausedAt });
+  const candidateDiscounts = await fetchActiveCandidateDiscounts(db);
+  return enrichSubscription(updated, { asOfDate: pausedAt, candidateDiscounts });
 }
 
 /**
  * Resumes a paused ACTIVE subscription if Plan.pausable = true.
- * Adjusts nextInvoiceDate by the elapsed pause duration and logs ACTION:RESUMED in history.
  */
 export async function resumeSubscription(
   params: {
@@ -787,32 +992,30 @@ export async function resumeSubscription(
 
   const formattedNote = note ? `${RESUME_ACTION_NOTE} - ${note}` : RESUME_ACTION_NOTE;
 
-  const updated = await db.$transaction(async (tx) => {
-    return tx.subscription.update({
-      where: { id: subscriptionId },
-      data: {
-        isPaused: false,
-        nextInvoiceDate: adjustedNextInvoiceDate,
-        history: {
-          create: {
-            fromStatus: sub.status,
-            toStatus: sub.status,
-            changedById,
-            note: formattedNote,
-            changedAt: resumedAt,
-          },
+  const updated = await db.subscription.update({
+    where: { id: subscriptionId },
+    data: {
+      isPaused: false,
+      nextInvoiceDate: adjustedNextInvoiceDate,
+      history: {
+        create: {
+          fromStatus: sub.status,
+          toStatus: sub.status,
+          changedById,
+          note: formattedNote,
+          changedAt: resumedAt,
         },
       },
-      include: SUBSCRIPTION_INCLUDE,
-    });
+    },
+    include: SUBSCRIPTION_INCLUDE,
   });
 
-  return enrichSubscription(updated, { asOfDate: resumedAt });
+  const candidateDiscounts = await fetchActiveCandidateDiscounts(db);
+  return enrichSubscription(updated, { asOfDate: resumedAt, candidateDiscounts });
 }
 
 /**
  * Early closes an ACTIVE subscription if Plan.closable = true.
- * Uses the central status-transition function to transition ACTIVE -> CLOSED.
  */
 export async function closeSubscription(
   params: {
@@ -862,9 +1065,6 @@ export async function closeSubscription(
 
 /**
  * Renews an ACTIVE subscription if Plan.renewable = true.
- * Extends expiryDate by 1 billing cycle (or custom date) and updates nextInvoiceDate,
- * recording ACTION:RENEWED in SubscriptionStatusHistory.
- * Rejects CLOSED subscriptions per PRD Section 6.
  */
 export async function renewSubscription(
   params: {
@@ -921,35 +1121,30 @@ export async function renewSubscription(
     ? `${RENEW_ACTION_NOTE} - ${note}`
     : `${RENEW_ACTION_NOTE} - Extended expiry to ${newExpiryDate.toISOString().slice(0, 10)}`;
 
-  const updated = await db.$transaction(async (tx) => {
-    return tx.subscription.update({
-      where: { id: subscriptionId },
-      data: {
-        expiryDate: newExpiryDate,
-        nextInvoiceDate: newNextInvoiceDate,
-        history: {
-          create: {
-            fromStatus: sub.status,
-            toStatus: sub.status,
-            changedById,
-            note: formattedNote,
-            changedAt: renewedAt,
-          },
+  const updated = await db.subscription.update({
+    where: { id: subscriptionId },
+    data: {
+      expiryDate: newExpiryDate,
+      nextInvoiceDate: newNextInvoiceDate,
+      history: {
+        create: {
+          fromStatus: sub.status,
+          toStatus: sub.status,
+          changedById,
+          note: formattedNote,
+          changedAt: renewedAt,
         },
       },
-      include: SUBSCRIPTION_INCLUDE,
-    });
+    },
+    include: SUBSCRIPTION_INCLUDE,
   });
 
-  return enrichSubscription(updated, { asOfDate: renewedAt });
+  const candidateDiscounts = await fetchActiveCandidateDiscounts(db);
+  return enrichSubscription(updated, { asOfDate: renewedAt, candidateDiscounts });
 }
 
 /**
- * Automatic close at expiry (PRD Section 6):
- * Reusable P3 service function for P4 to call at the start of the billing run
- * (or callable by a daily scheduler).
- * Closes ACTIVE subscriptions whose expiryDate has passed ONLY when Plan.autoClose = true.
- * Uses the central status-transition function so every automatic close is recorded in history.
+ * Automatic close at expiry (BRD v2 Section 8):
  */
 export async function closeExpiredSubscriptions(
   asOfDate: Date = new Date(),
@@ -975,6 +1170,7 @@ export async function closeExpiredSubscriptions(
         subscriptionId: sub.id,
         toStatus: "CLOSED",
         changedById: null,
+        actorRole: "SYSTEM",
         note: `ACTION:AUTO_CLOSED - Automatically closed after expiry date as of ${asOfDate.toISOString().slice(0, 10)}`,
         activationDate: asOfDate,
       },
@@ -992,14 +1188,16 @@ export async function closeExpiredSubscriptions(
 }
 
 /**
- * P3-to-P4 Integration Contract Reader (PRD Section 10):
- * Exposes due, active, unpaused subscriptions with all required fields for P4's billing engine.
- * P4 reads this data to generate invoices; P3 never creates invoices.
+ * P3-to-P4 Integration Contract Reader:
+ * First activates any due CONFIRMED subscriptions whose startDate <= asOfDate,
+ * then returns all ACTIVE, unpaused subscriptions due for invoicing.
  */
 export async function getDueSubscriptionsForBilling(
   asOfDate: Date = new Date(),
   db: PrismaClient = defaultPrisma
 ) {
+  await activateConfirmedSubscriptions(asOfDate, db);
+
   const dueSubscriptions = await db.subscription.findMany({
     where: {
       status: "ACTIVE",
@@ -1022,11 +1220,16 @@ export async function getDueSubscriptionsForBilling(
     orderBy: { nextInvoiceDate: "asc" },
   });
 
-  return dueSubscriptions.map((sub) => enrichSubscription(sub, { asOfDate }));
+  const candidateDiscounts = await fetchActiveCandidateDiscounts(db);
+  return dueSubscriptions.map((sub) =>
+    enrichSubscription(sub, { asOfDate, candidateDiscounts })
+  );
 }
 
 /**
  * Lists, searches, filters, and paginates subscriptions.
+ * Automatically runs `activateConfirmedSubscriptions` so any CONFIRMED subscription
+ * whose startDate has arrived is transitioned to ACTIVE by the system.
  */
 export async function listSubscriptions(
   params: {
@@ -1041,6 +1244,9 @@ export async function listSubscriptions(
   },
   db: PrismaClient = defaultPrisma
 ) {
+  const asOfDate = params.asOfDate ?? new Date();
+  await activateConfirmedSubscriptions(asOfDate, db);
+
   const page = Math.max(1, params.page ?? 1);
   const pageSize = Math.min(100, Math.max(1, params.pageSize ?? 10));
   const skip = (page - 1) * pageSize;
@@ -1069,7 +1275,7 @@ export async function listSubscriptions(
     ];
   }
 
-  const [total, items] = await Promise.all([
+  const [total, items, candidateDiscounts] = await Promise.all([
     db.subscription.count({ where }),
     db.subscription.findMany({
       where,
@@ -1078,10 +1284,13 @@ export async function listSubscriptions(
       skip,
       take: pageSize,
     }),
+    fetchActiveCandidateDiscounts(db),
   ]);
 
   return {
-    items: items.map((item) => enrichSubscription(item, { asOfDate: params.asOfDate })),
+    items: items.map((item) =>
+      enrichSubscription(item, { asOfDate, candidateDiscounts })
+    ),
     pagination: {
       page,
       pageSize,
@@ -1093,6 +1302,7 @@ export async function listSubscriptions(
 
 /**
  * Retrieves a single subscription by ID, enforcing customer ownership if requested by a customer.
+ * Also runs system activation check if subscription is CONFIRMED and startDate <= asOfDate.
  */
 export async function getSubscriptionById(
   subscriptionId: number,
@@ -1103,6 +1313,9 @@ export async function getSubscriptionById(
   },
   db: PrismaClient = defaultPrisma
 ) {
+  const asOfDate = options?.asOfDate ?? new Date();
+  await activateConfirmedSubscriptions(asOfDate, db);
+
   const sub = await db.subscription.findUnique({
     where: { id: subscriptionId },
     include: SUBSCRIPTION_INCLUDE,
@@ -1123,9 +1336,10 @@ export async function getSubscriptionById(
     );
   }
 
+  const candidateDiscounts = await fetchActiveCandidateDiscounts(db);
   return enrichSubscription(sub, {
-    asOfDate: options?.asOfDate,
+    asOfDate,
     pausePolicyOverride: options?.pausePolicyOverride,
+    candidateDiscounts,
   });
 }
-
