@@ -1,5 +1,5 @@
 import { portalCustomerScope } from "@/lib/invoices/access";
-import { getCurrentUser, requireRole } from "@/lib/invoices/auth-stub";
+import { getCurrentUser, requireRole } from "@/lib/auth";
 import { handle, json, parseId } from "@/lib/invoices/http";
 import { getInvoiceDetail } from "@/lib/invoices/invoice-detail";
 

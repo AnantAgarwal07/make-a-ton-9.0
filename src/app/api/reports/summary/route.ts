@@ -1,5 +1,5 @@
 import { customerScope } from "@/lib/invoices/access";
-import { getCurrentUser, requireRole } from "@/lib/invoices/auth-stub";
+import { getCurrentUser, requireRole } from "@/lib/auth";
 import { handle, json, parseQuery } from "@/lib/invoices/http";
 import { getReportSummary } from "@/lib/invoices/report-summary";
 import { reportSummaryQuery } from "@/lib/invoices/schemas";

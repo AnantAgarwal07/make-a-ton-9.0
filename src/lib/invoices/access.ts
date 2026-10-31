@@ -1,4 +1,4 @@
-import type { CurrentUser } from "./auth-stub";
+import type { CurrentUser } from "@/lib/auth";
 import { HttpError } from "./http-error";
 
 /**

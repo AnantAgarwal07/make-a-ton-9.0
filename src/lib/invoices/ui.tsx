@@ -1,5 +1,6 @@
 import React from "react";
 import Link from "next/link";
+import { BillingNavUserMenu } from "@/components/billing-nav-user-menu";
 
 const STATUS_STYLES: Record<string, string> = {
   DRAFT: "bg-slate-100 text-slate-700 border-slate-300",
@@ -47,7 +48,11 @@ export function formatDate(value: string | Date): string {
   return d.toISOString().slice(0, 10);
 }
 
-export function BillingNav({ active }: { active: "dashboard" | "invoices" | "overdue" | "payments" | "portal" }) {
+export function BillingNav({
+  active,
+}: {
+  active: "dashboard" | "invoices" | "overdue" | "payments" | "portal";
+}) {
   const items: { key: typeof active; label: string; href: string }[] = [
     { key: "dashboard", label: "Finance Dashboard", href: "/dashboard" },
     { key: "invoices", label: "Invoices", href: "/invoices" },
@@ -58,12 +63,12 @@ export function BillingNav({ active }: { active: "dashboard" | "invoices" | "ove
 
   return (
     <header className="border-b border-slate-200 bg-white print:hidden">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3.5">
-        <div className="flex items-center gap-6">
+      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-6 py-3.5">
+        <div className="flex flex-wrap items-center gap-6">
           <Link href="/invoices" className="text-base font-bold tracking-tight text-slate-900">
             Brightloop <span className="font-normal text-slate-500">Billing</span>
           </Link>
-          <nav className="flex items-center gap-1">
+          <nav className="flex flex-wrap items-center gap-1">
             {items.map((item) => {
               const isActive = item.key === active;
               return (
@@ -82,6 +87,8 @@ export function BillingNav({ active }: { active: "dashboard" | "invoices" | "ove
             })}
           </nav>
         </div>
+
+        <BillingNavUserMenu />
       </div>
     </header>
   );
@@ -133,4 +140,3 @@ export function PaginationBar({
     </div>
   );
 }
-

@@ -1,4 +1,4 @@
-import { getCurrentUser, requireRole } from "@/lib/invoices/auth-stub";
+import { getCurrentUser, requireRole } from "@/lib/auth";
 import { handle, json, parseBody, parseId } from "@/lib/invoices/http";
 import { recordPayment } from "@/lib/invoices/record-payment";
 import { recordPaymentBody } from "@/lib/invoices/schemas";
