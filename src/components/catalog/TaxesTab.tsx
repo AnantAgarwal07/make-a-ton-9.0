@@ -232,7 +232,7 @@ export default function TaxesTab({
           <div>
             <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
               Tax Rules Configuration
-              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-800 border border-slate-300">
                 ADMIN Only
               </span>
             </h2>
@@ -243,7 +243,7 @@ export default function TaxesTab({
 
           <button
             onClick={openCreateModal}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold shadow-sm transition"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold shadow-sm transition"
           >
             + New Tax Rule
           </button>
@@ -285,7 +285,7 @@ export default function TaxesTab({
                         <span
                           className={`inline-flex px-2.5 py-0.5 rounded-md text-xs font-bold ${
                             tax.type === "PERCENT"
-                              ? "bg-indigo-50 text-indigo-700 border border-indigo-200"
+                              ? "bg-slate-100 text-slate-800 border border-slate-300"
                               : "bg-sky-50 text-sky-700 border border-sky-200"
                           }`}
                         >
@@ -343,9 +343,9 @@ export default function TaxesTab({
       <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-slate-100">
           <div>
-            <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-indigo-600">
+            <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-900">
               <span>P2 → P3 Billing Handover Function</span>
-              <code className="px-2 py-0.5 rounded bg-indigo-50 border border-indigo-200 text-indigo-800">
+              <code className="px-2 py-0.5 rounded bg-slate-100 border border-slate-300 text-slate-900">
                 calculateTax(lines)
               </code>
             </div>
@@ -503,7 +503,7 @@ export default function TaxesTab({
             <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-3">
               <div>
                 <span className="text-xs text-slate-400 block">Per-Line Tax Array (lineTaxes)</span>
-                <code className="text-xs text-indigo-300 font-mono">
+                <code className="text-xs text-slate-400 font-mono">
                   [{calcResult.lineTaxes.map((t) => formatINR(t)).join(", ")}]
                 </code>
               </div>
@@ -616,7 +616,7 @@ export default function TaxesTab({
                   type="checkbox"
                   checked={isActive}
                   onChange={(e) => setIsActive(e.target.checked)}
-                  className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                  className="rounded border-slate-300 text-slate-900 focus:ring-slate-600"
                 />
                 <span className="text-xs font-semibold text-slate-800">
                   Tax is Active and available for billing lines
@@ -634,7 +634,7 @@ export default function TaxesTab({
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold"
+                  className="px-5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold"
                 >
                   {saving ? "Saving..." : editingTax ? "Save Tax" : "Create Tax"}
                 </button>

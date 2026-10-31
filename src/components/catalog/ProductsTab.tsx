@@ -287,7 +287,7 @@ export default function ProductsTab({
           <div>
             <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
               Products & Variant Pricing Catalog
-              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-800 border border-slate-300">
                 {filteredProducts.length} shown
               </span>
             </h2>
@@ -300,7 +300,7 @@ export default function ProductsTab({
             {permissions.canWriteProducts ? (
               <button
                 onClick={openCreateProductModal}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold shadow-sm transition"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold shadow-sm transition"
               >
                 <span>+ New Product</span>
               </button>
@@ -320,7 +320,7 @@ export default function ProductsTab({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search products, types, notes, or variant values (e.g. Odoo)..."
-              className="w-full pl-9 pr-4 py-2 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-slate-900 bg-slate-50/60"
+              className="w-full pl-9 pr-4 py-2 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-600 focus:border-slate-600 text-slate-900 bg-slate-50/60"
             />
             <span className="absolute left-3 top-2.5 text-slate-400 text-sm">🔍</span>
           </div>
@@ -329,7 +329,7 @@ export default function ProductsTab({
             <select
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value)}
-              className="px-3 py-2 text-sm rounded-xl border border-slate-200 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="px-3 py-2 text-sm rounded-xl border border-slate-200 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-600"
             >
               <option value="all">All Types</option>
               {uniqueTypes.map((t) => (
@@ -361,7 +361,7 @@ export default function ProductsTab({
       {/* Products Table */}
       {loading ? (
         <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-indigo-600 border-r-transparent" />
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-slate-900 border-r-transparent" />
           <p className="mt-3 text-sm text-slate-500">Loading product catalog...</p>
         </div>
       ) : filteredProducts.length === 0 ? (
@@ -373,7 +373,7 @@ export default function ProductsTab({
           {permissions.canWriteProducts && (
             <button
               onClick={openCreateProductModal}
-              className="mt-4 px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700"
+              className="mt-4 px-4 py-2 rounded-xl bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800"
             >
               + Create First Product
             </button>
@@ -402,7 +402,7 @@ export default function ProductsTab({
                   >
                     <td className="py-4 px-4 align-top">
                       <div className="flex items-start gap-3">
-                        <div className="h-10 w-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-700 font-bold shrink-0">
+                        <div className="h-10 w-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-800 font-bold shrink-0">
                           {product.name.charAt(0).toUpperCase()}
                         </div>
                         <div>
@@ -454,7 +454,7 @@ export default function ProductsTab({
                               <span className="text-slate-400">
                                 (+{formatINR(v.extraPrice)})
                               </span>
-                              <span className="font-bold text-indigo-700">
+                              <span className="font-bold text-slate-800">
                                 = {formatINR(v.finalPrice)}
                               </span>
                             </div>
@@ -464,7 +464,7 @@ export default function ProductsTab({
                       {permissions.canManageVariants && (
                         <button
                           onClick={() => openVariantManager(product)}
-                          className="mt-2 block text-xs font-semibold text-indigo-600 hover:text-indigo-800"
+                          className="mt-2 block text-xs font-semibold text-slate-900 hover:text-slate-900"
                         >
                           ⚙ Manage Variants ({product.variants.length})
                         </button>
@@ -556,7 +556,7 @@ export default function ProductsTab({
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="e.g., Business Software"
-                    className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                    className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 text-slate-900 focus:ring-2 focus:ring-slate-600 focus:outline-none"
                   />
                 </div>
                 <div>
@@ -570,7 +570,7 @@ export default function ProductsTab({
                     value={type}
                     onChange={(e) => setType(e.target.value)}
                     placeholder="e.g., Software, Cloud Storage"
-                    className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                    className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 text-slate-900 focus:ring-2 focus:ring-slate-600 focus:outline-none"
                   />
                   <datalist id="product-type-suggestions">
                     {PRODUCT_TYPES.map((pt) => (
@@ -592,7 +592,7 @@ export default function ProductsTab({
                     required
                     value={salesPrice}
                     onChange={(e) => setSalesPrice(e.target.value)}
-                    className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 bg-white text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                    className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 bg-white text-slate-900 focus:ring-2 focus:ring-slate-600 focus:outline-none"
                   />
                 </div>
                 <div>
@@ -606,7 +606,7 @@ export default function ProductsTab({
                     required
                     value={costPrice}
                     onChange={(e) => setCostPrice(e.target.value)}
-                    className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 bg-white text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                    className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 bg-white text-slate-900 focus:ring-2 focus:ring-slate-600 focus:outline-none"
                   />
                 </div>
                 <div className="flex flex-col justify-center">
@@ -630,7 +630,7 @@ export default function ProductsTab({
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Optional internal notes or specifications..."
-                  className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 text-slate-900 focus:ring-2 focus:ring-slate-600 focus:outline-none"
                 />
               </div>
 
@@ -654,7 +654,7 @@ export default function ProductsTab({
                           { attribute: "Tier", value: "", extraPrice: "0" },
                         ])
                       }
-                      className="text-xs font-semibold text-indigo-600 hover:text-indigo-800"
+                      className="text-xs font-semibold text-slate-900 hover:text-slate-900"
                     >
                       + Add Variant Row
                     </button>
@@ -709,7 +709,7 @@ export default function ProductsTab({
                               className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 bg-white text-slate-900"
                             />
                           </div>
-                          <div className="col-span-2 flex items-center justify-between text-xs font-semibold text-indigo-700">
+                          <div className="col-span-2 flex items-center justify-between text-xs font-semibold text-slate-800">
                             <span>{formatINR(previewSales + extra)}</span>
                             <button
                               type="button"
@@ -739,7 +739,7 @@ export default function ProductsTab({
                 <button
                   type="submit"
                   disabled={savingProduct}
-                  className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-semibold shadow-sm"
+                  className="px-5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white text-sm font-semibold shadow-sm"
                 >
                   {savingProduct
                     ? "Saving..."
@@ -799,7 +799,7 @@ export default function ProductsTab({
                           <td className="py-2.5 px-3 font-medium text-slate-700">{v.attribute}</td>
                           <td className="py-2.5 px-3 font-semibold text-slate-900">{v.value}</td>
                           <td className="py-2.5 px-3 text-slate-600">+{formatINR(v.extraPrice)}</td>
-                          <td className="py-2.5 px-3 font-bold text-indigo-700">
+                          <td className="py-2.5 px-3 font-bold text-slate-800">
                             {formatINR(v.finalPrice)}
                           </td>
                           <td className="py-2.5 px-3 text-right space-x-2">
@@ -811,7 +811,7 @@ export default function ProductsTab({
                                 setVarValue(v.value);
                                 setVarExtraPrice(String(v.extraPrice));
                               }}
-                              className="text-xs font-semibold text-indigo-600 hover:text-indigo-800"
+                              className="text-xs font-semibold text-slate-900 hover:text-slate-900"
                             >
                               Edit
                             </button>
@@ -834,10 +834,10 @@ export default function ProductsTab({
             {/* Add / Update Variant Form */}
             <form
               onSubmit={handleSaveVariant}
-              className="mt-5 bg-indigo-50/50 p-4 rounded-xl border border-indigo-100 space-y-3"
+              className="mt-5 bg-slate-100/50 p-4 rounded-xl border border-slate-200 space-y-3"
             >
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-indigo-900">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-950">
                   {editingVariant ? `Editing Variant #${editingVariant.id}` : "Add New Variant"}
                 </span>
                 {editingVariant && (
@@ -900,7 +900,7 @@ export default function ProductsTab({
                   <button
                     type="submit"
                     disabled={savingVariant}
-                    className="w-full py-2 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold shadow-sm"
+                    className="w-full py-2 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold shadow-sm"
                   >
                     {savingVariant
                       ? "Saving..."
@@ -911,7 +911,7 @@ export default function ProductsTab({
                 </div>
               </div>
 
-              <div className="text-xs text-indigo-800 font-medium">
+              <div className="text-xs text-slate-900 font-medium">
                 Live Final Price Preview: {formatINR(currentVariantProduct.salesPrice)} (Base) +{" "}
                 {formatINR(Number(varExtraPrice) || 0)} (Extra) ={" "}
                 <strong>

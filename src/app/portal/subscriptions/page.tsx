@@ -45,12 +45,12 @@ export default function CustomerPortalSubscriptionsPage() {
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <SubscriptionHeader />
 
-      <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 space-y-8">
+      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 space-y-6">
         <div>
-          <span className="inline-block rounded-full bg-indigo-100 px-3 py-0.5 text-xs font-semibold text-indigo-800 mb-2">
+          <span className="inline-block rounded-full bg-slate-200 px-3 py-0.5 text-xs font-semibold text-slate-900 mb-2">
             Customer Self-Service Portal
           </span>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+          <h1 className="text-xl font-bold text-slate-900">
             My Quotations & Subscriptions
           </h1>
           <p className="text-sm text-slate-600">
@@ -64,7 +64,7 @@ export default function CustomerPortalSubscriptionsPage() {
             <div>
               <p className="font-semibold">{error}</p>
               <p className="mt-1 text-xs text-amber-800">
-                Customer portal pages strictly enforce server-side customer authentication. Use the Active User selector in the top-right header to switch to a CUSTOMER account (e.g., Acme Traders, Zen Studio, or Aarav Sharma).
+                Customer portal pages strictly enforce server-side customer authentication. Sign in with a CUSTOMER account to view your subscriptions.
               </p>
             </div>
           </div>
@@ -98,7 +98,7 @@ export default function CustomerPortalSubscriptionsPage() {
                     >
                       <div className="space-y-1.5">
                         <div className="flex items-center gap-3">
-                          <span className="font-mono text-base font-bold text-indigo-700">
+                          <span className="font-mono text-base font-bold text-slate-800">
                             {sub.number}
                           </span>
                           <StatusBadge
@@ -140,7 +140,7 @@ export default function CustomerPortalSubscriptionsPage() {
 
                         <Link
                           href={`/portal/subscriptions/${sub.id}`}
-                          className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-700 transition"
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white hover:bg-slate-800 transition"
                         >
                           Review & Accept Offer
                           <ArrowRight className="h-3.5 w-3.5" />
@@ -167,11 +167,11 @@ export default function CustomerPortalSubscriptionsPage() {
                   {mySubscriptions.map((sub) => (
                     <div
                       key={sub.id}
-                      className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:border-indigo-200 transition flex flex-wrap items-center justify-between gap-4"
+                      className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:border-slate-300 transition flex flex-wrap items-center justify-between gap-4"
                     >
                       <div className="space-y-1.5">
                         <div className="flex items-center gap-3">
-                          <span className="font-mono text-base font-bold text-indigo-700">
+                          <span className="font-mono text-base font-bold text-slate-800">
                             {sub.number}
                           </span>
                           <StatusBadge
@@ -213,7 +213,7 @@ export default function CustomerPortalSubscriptionsPage() {
 
                         <Link
                           href={`/portal/subscriptions/${sub.id}`}
-                          className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-600 transition"
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white hover:bg-slate-900 transition"
                         >
                           Manage
                           <ArrowRight className="h-3.5 w-3.5" />

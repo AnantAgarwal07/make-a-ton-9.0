@@ -221,7 +221,7 @@ export default function PlansTab({
           <div>
             <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
               Subscription Plans & Lifecycle Configuration
-              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-800 border border-slate-300">
                 {filteredPlans.length} plans
               </span>
             </h2>
@@ -234,7 +234,7 @@ export default function PlansTab({
             {permissions.canWritePlans ? (
               <button
                 onClick={openCreateModal}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold shadow-sm transition"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold shadow-sm transition"
               >
                 + New Subscription Plan
               </button>
@@ -254,7 +254,7 @@ export default function PlansTab({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search plan name..."
-              className="px-3.5 py-2 text-sm rounded-xl border border-slate-200 bg-slate-50/60 text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="px-3.5 py-2 text-sm rounded-xl border border-slate-200 bg-slate-50/60 text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-600"
             />
 
             <div className="inline-flex rounded-xl bg-slate-100 p-1">
@@ -290,7 +290,7 @@ export default function PlansTab({
                 type="checkbox"
                 checked={availableOnly}
                 onChange={(e) => setAvailableOnly(e.target.checked)}
-                className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                className="rounded border-slate-300 text-slate-900 focus:ring-slate-600"
               />
               Show Available Only
             </label>
@@ -301,7 +301,7 @@ export default function PlansTab({
       {/* Plans Grid & Table */}
       {loading ? (
         <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-indigo-600 border-r-transparent" />
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-slate-900 border-r-transparent" />
           <p className="mt-3 text-sm text-slate-500">Loading subscription plans...</p>
         </div>
       ) : filteredPlans.length === 0 ? (
@@ -321,7 +321,7 @@ export default function PlansTab({
               <div>
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold uppercase tracking-wider bg-indigo-50 text-indigo-700 border border-indigo-200">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold uppercase tracking-wider bg-slate-100 text-slate-800 border border-slate-300">
                       {plan.billingPeriod}
                     </span>
                     <h3 className="text-base font-bold text-slate-900 mt-2">{plan.name}</h3>
@@ -385,15 +385,15 @@ export default function PlansTab({
                           onClick={() => handleQuickToggleFlag(plan, key)}
                           className={`flex items-center justify-between px-3 py-2 rounded-xl border text-xs font-semibold transition ${
                             active
-                              ? "bg-indigo-50/70 border-indigo-200 text-indigo-900"
+                              ? "bg-slate-100/70 border-slate-300 text-slate-950"
                               : "bg-slate-50 border-slate-200 text-slate-500"
-                          } ${permissions.canWritePlans ? "hover:border-indigo-400 cursor-pointer" : "cursor-default"}`}
+                          } ${permissions.canWritePlans ? "hover:border-slate-500 cursor-pointer" : "cursor-default"}`}
                         >
                           <span>{label}</span>
                           <span
                             className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
                               active
-                                ? "bg-indigo-600 text-white"
+                                ? "bg-slate-900 text-white"
                                 : "bg-slate-200 text-slate-600"
                             }`}
                           >
@@ -584,7 +584,7 @@ export default function PlansTab({
                         type="checkbox"
                         checked={item.val}
                         onChange={(e) => item.set(e.target.checked)}
-                        className="mt-0.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                        className="mt-0.5 rounded border-slate-300 text-slate-900 focus:ring-slate-600"
                       />
                       <div>
                         <div className="text-xs font-bold text-slate-900">{item.label}</div>
@@ -606,7 +606,7 @@ export default function PlansTab({
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold shadow-sm"
+                  className="px-5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold shadow-sm"
                 >
                   {saving ? "Saving..." : editingPlan ? "Save Plan" : "Create Plan"}
                 </button>

@@ -93,7 +93,7 @@ export default function CustomerPortalSubscriptionDetailPage() {
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <SubscriptionHeader />
 
-      <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 space-y-6">
+      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 space-y-6">
         <Link
           href="/portal/subscriptions"
           className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-900"
@@ -134,7 +134,7 @@ export default function CustomerPortalSubscriptionDetailPage() {
 
                 <div className="text-right">
                   <div className="text-xs text-slate-500">Grand Total</div>
-                  <div className="font-mono text-2xl font-bold text-indigo-700">
+                  <div className="font-mono text-2xl font-bold text-slate-800">
                     ₹{sub.totals?.grandTotal ?? "0.00"}
                   </div>
                 </div>
@@ -183,7 +183,7 @@ export default function CustomerPortalSubscriptionDetailPage() {
                             }
                           )
                         }
-                        className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
                       >
                         <CheckCircle className="h-4 w-4" />
                         Accept Quotation
@@ -366,7 +366,7 @@ export default function CustomerPortalSubscriptionDetailPage() {
                     </div>
                     <div className="flex w-64 justify-between border-t border-slate-200 pt-1.5 text-base font-bold text-slate-900">
                       <span>Grand Total:</span>
-                      <span className="font-mono text-indigo-700">
+                      <span className="font-mono text-slate-800">
                         ₹{sub.totals?.grandTotal}
                       </span>
                     </div>

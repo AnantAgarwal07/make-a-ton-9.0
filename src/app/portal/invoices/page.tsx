@@ -69,7 +69,7 @@ export default function PortalInvoicesPage() {
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <BillingNav active="portal" />
 
-      <main className="mx-auto max-w-6xl px-6 py-6">
+      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
           <div>
             <span className="inline-block rounded bg-blue-50 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-blue-700">

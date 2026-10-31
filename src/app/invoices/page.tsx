@@ -84,7 +84,7 @@ export default function InvoicesPage() {
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <BillingNav active="invoices" />
 
-      <main className="mx-auto max-w-7xl px-6 py-6">
+      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-xl font-bold text-slate-900">Invoices</h1>

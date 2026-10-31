@@ -143,7 +143,7 @@ export default function FinanceDashboardPage() {
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <BillingNav active="dashboard" />
 
-      <main className="mx-auto max-w-7xl px-6 py-6">
+      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
         {/* Title & Filter Bar */}
         <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
           <div>

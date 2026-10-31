@@ -465,7 +465,7 @@ export function SubscriptionForm({
             <button
               type="button"
               onClick={() => setShowAddCustomer(true)}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-800 hover:bg-slate-200 transition"
             >
               <UserPlus className="h-4 w-4" />
               + Add customer
@@ -482,7 +482,7 @@ export function SubscriptionForm({
                 placeholder="Type customer name, email, or phone..."
                 value={customerSearch}
                 onChange={(e) => setCustomerSearch(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-slate-600 focus:outline-none"
               />
             </div>
 
@@ -494,7 +494,7 @@ export function SubscriptionForm({
                 required
                 value={customerId}
                 onChange={(e) => setCustomerId(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none"
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-slate-600 focus:outline-none"
               >
                 <option value="">Select Customer...</option>
                 {filteredCustomers.map((c) => (
@@ -539,7 +539,7 @@ export function SubscriptionForm({
                     );
                   }
                 }}
-                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none"
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-slate-600 focus:outline-none"
               >
                 <option value="">Select Plan...</option>
                 {catalog.plans.map((p) => (
@@ -558,7 +558,7 @@ export function SubscriptionForm({
                 required
                 value={paymentTermsDays}
                 onChange={(e) => setPaymentTermsDays(Number(e.target.value))}
-                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none"
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-slate-600 focus:outline-none"
               >
                 {PAYMENT_TERMS_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
@@ -573,7 +573,7 @@ export function SubscriptionForm({
             <div className="rounded-lg border border-slate-200 bg-slate-50 p-3.5 text-xs text-slate-700 flex flex-wrap items-center justify-between gap-2">
               <div>
                 <span className="font-semibold text-slate-900">{selectedPlan.name}</span> (Read-Only Plan Context) • Billing Frequency:{" "}
-                <span className="font-semibold text-indigo-700">{selectedPlan.billingPeriod}</span> • Plan Reference Price:{" "}
+                <span className="font-semibold text-slate-800">{selectedPlan.billingPeriod}</span> • Plan Reference Price:{" "}
                 <span className="font-mono font-semibold">₹{Number(selectedPlan.price).toFixed(2)}</span> • Minimum Quantity:{" "}
                 <span className="font-semibold">{selectedPlan.minQuantity}</span> • Available:{" "}
                 <span className="font-semibold">
@@ -636,7 +636,7 @@ export function SubscriptionForm({
                 required
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-slate-600 focus:outline-none"
               />
             </div>
 
@@ -649,7 +649,7 @@ export function SubscriptionForm({
                 required
                 value={expiryDate}
                 onChange={(e) => setExpiryDate(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-slate-600 focus:outline-none"
               />
             </div>
 
@@ -662,7 +662,7 @@ export function SubscriptionForm({
                 required
                 value={quotationValidUntil}
                 onChange={(e) => setQuotationValidUntil(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-slate-600 focus:outline-none"
               />
             </div>
           </div>
@@ -682,7 +682,7 @@ export function SubscriptionForm({
             <button
               type="button"
               onClick={addLine}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-800 hover:bg-slate-200 transition"
             >
               <Plus className="h-4 w-4" />
               + Add product line
@@ -861,7 +861,7 @@ export function SubscriptionForm({
 
             <div className="flex w-72 justify-between border-t border-slate-200 pt-1.5 text-base font-bold text-slate-900">
               <span>Grand Total:</span>
-              <span className="font-mono text-indigo-700">₹{calculatedSummary.grandTotal}</span>
+              <span className="font-mono text-slate-800">₹{calculatedSummary.grandTotal}</span>
             </div>
           </div>
         </div>
@@ -892,7 +892,7 @@ export function SubscriptionForm({
           <button
             type="submit"
             disabled={submitting || catalog.taxes.length === 0}
-            className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 disabled:opacity-50"
           >
             <CheckCircle2 className="h-4 w-4" />
             {submitting
@@ -998,7 +998,7 @@ export function SubscriptionForm({
                 <button
                   type="submit"
                   disabled={creatingCustomer}
-                  className="rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
+                  className="rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
                 >
                   {creatingCustomer ? "Saving..." : "Save & Select Customer"}
                 </button>

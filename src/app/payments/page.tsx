@@ -79,7 +79,7 @@ export default function PaymentsPage() {
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <BillingNav active="payments" />
 
-      <main className="mx-auto max-w-7xl px-6 py-6">
+      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
         <div className="mb-5">
           <h1 className="text-xl font-bold text-slate-900">Payments</h1>
           <p className="text-xs text-slate-500">

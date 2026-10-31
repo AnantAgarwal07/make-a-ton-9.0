@@ -17,6 +17,7 @@ import PlansTab from "./PlansTab";
 import TaxesTab from "./TaxesTab";
 import DiscountsTab from "./DiscountsTab";
 import TemplatesTab from "./TemplatesTab";
+import { PageTitle, SiteHeader } from "@/components/site-header";
 
 type ActiveTab = "products" | "plans" | "taxes" | "discounts" | "templates";
 
@@ -64,7 +65,8 @@ const DEFAULT_PERMISSIONS: Record<UserRole, UserPermissions> = {
 
 export default function CatalogDashboard() {
   const [activeTab, setActiveTab] = useState<ActiveTab>("products");
-  const [role, setRole] = useState<UserRole>("ADMIN");
+  const [role, setRole] = useState<UserRole>("STAFF");
+  const [roleReady, setRoleReady] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const [summary, setSummary] = useState<CatalogSummaryDto>({
@@ -165,30 +167,24 @@ export default function CatalogDashboard() {
   );
 
   useEffect(() => {
-    fetchAllCatalogData(role);
-  }, [role, fetchAllCatalogData]);
+    let mounted = true;
+    fetch("/api/auth/me")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!mounted) return;
+        const r = data?.user?.role as UserRole | undefined;
+        if (r === "ADMIN" || r === "STAFF" || r === "CUSTOMER") setRole(r);
+        setRoleReady(true);
+      })
+      .catch(() => mounted && setRoleReady(true));
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
-  async function handleSwitchRole(nextRole: UserRole) {
-    setRole(nextRole);
-    try {
-      await fetch("/api/auth/session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role: nextRole }),
-      });
-      notify(
-        "info",
-        `Switched Active Role to ${nextRole}`,
-        nextRole === "ADMIN"
-          ? "Full Catalog & Pricing administrative access enabled."
-          : nextRole === "STAFF"
-          ? "STAFF access: Read Products/Plans, Manage & Use Quotation Templates. Discounts/Taxes/Writes restricted (HTTP 403)."
-          : "CUSTOMER access: Administrative catalog endpoints are restricted (HTTP 403)."
-      );
-    } catch {
-      // Fallback to state role
-    }
-  }
+  useEffect(() => {
+    if (roleReady) fetchAllCatalogData(role);
+  }, [role, roleReady, fetchAllCatalogData]);
 
   const navItems: {
     id: ActiveTab;
@@ -227,73 +223,28 @@ export default function CatalogDashboard() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
-      {/* Top SaaS Navigation Bar */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center text-white font-black text-lg shadow-sm">
-              B
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-extrabold text-base tracking-tight text-slate-900">
-                  Brightloop
-                </span>
-                <span className="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200">
-                  P2 · Catalog & Pricing
-                </span>
-              </div>
-              <p className="text-xs text-slate-500 hidden sm:block">
-                Products, Variants, Plans, Taxes, Discounts & Quotation Templates
-              </p>
-            </div>
-          </div>
+      <SiteHeader />
 
-          {/* Role Switcher & Refresh */}
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200">
-              <span className="text-[11px] font-semibold text-slate-500 px-2 hidden md:inline">
-                Active Role (P1 RBAC):
-              </span>
-              {(["ADMIN", "STAFF", "CUSTOMER"] as UserRole[]).map((r) => (
-                <button
-                  key={r}
-                  type="button"
-                  onClick={() => handleSwitchRole(r)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition ${
-                    role === r
-                      ? r === "ADMIN"
-                        ? "bg-indigo-600 text-white shadow-xs"
-                        : r === "STAFF"
-                        ? "bg-amber-600 text-white shadow-xs"
-                        : "bg-rose-600 text-white shadow-xs"
-                      : "text-slate-600 hover:text-slate-900"
-                  }`}
-                >
-                  {r}
-                </button>
-              ))}
-            </div>
-
+      {/* Main Content Container */}
+      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 space-y-6">
+        <PageTitle
+          title="Catalog & Pricing"
+          subtitle="Products, variants, plans, taxes, discounts and quotation templates"
+          actions={
             <button
               type="button"
               onClick={() => fetchAllCatalogData(role)}
-              className="px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-xs font-semibold text-slate-700"
-              title="Refresh from Neon PostgreSQL"
+              className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-100"
             >
-              ↻ Sync DB
+              Refresh
             </button>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content Container */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+          }
+        />
         {/* KPI Metric Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
           <div
             onClick={() => setActiveTab("products")}
-            className="cursor-pointer bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs hover:border-indigo-300 transition"
+            className="cursor-pointer bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs hover:border-slate-400 transition"
           >
             <span className="text-xs font-semibold text-slate-500">Active Products</span>
             <div className="text-2xl font-extrabold text-slate-900 mt-1">
@@ -302,14 +253,14 @@ export default function CatalogDashboard() {
                 ({summary.archivedProducts} archived)
               </span>
             </div>
-            <div className="text-xs text-indigo-600 font-medium mt-1">
+            <div className="text-xs text-slate-900 font-medium mt-1">
               {summary.totalVariants} configured variant(s)
             </div>
           </div>
 
           <div
             onClick={() => setActiveTab("plans")}
-            className="cursor-pointer bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs hover:border-indigo-300 transition"
+            className="cursor-pointer bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs hover:border-slate-400 transition"
           >
             <span className="text-xs font-semibold text-slate-500">Subscription Plans</span>
             <div className="text-2xl font-extrabold text-slate-900 mt-1">
@@ -325,7 +276,7 @@ export default function CatalogDashboard() {
 
           <div
             onClick={() => setActiveTab("taxes")}
-            className="cursor-pointer bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs hover:border-indigo-300 transition"
+            className="cursor-pointer bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs hover:border-slate-400 transition"
           >
             <span className="text-xs font-semibold text-slate-500">Active Taxes</span>
             <div className="text-2xl font-extrabold text-slate-900 mt-1">
@@ -341,7 +292,7 @@ export default function CatalogDashboard() {
 
           <div
             onClick={() => setActiveTab("discounts")}
-            className="cursor-pointer bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs hover:border-indigo-300 transition"
+            className="cursor-pointer bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs hover:border-slate-400 transition"
           >
             <span className="text-xs font-semibold text-slate-500">Eligible Campaigns</span>
             <div className="text-2xl font-extrabold text-slate-900 mt-1">
@@ -357,13 +308,13 @@ export default function CatalogDashboard() {
 
           <div
             onClick={() => setActiveTab("templates")}
-            className="cursor-pointer bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs hover:border-indigo-300 transition col-span-2 sm:col-span-1"
+            className="cursor-pointer bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs hover:border-slate-400 transition col-span-2 sm:col-span-1"
           >
             <span className="text-xs font-semibold text-slate-500">Quotation Templates</span>
             <div className="text-2xl font-extrabold text-slate-900 mt-1">
               {summary.totalTemplates}
             </div>
-            <div className="text-xs text-indigo-600 font-medium mt-1">
+            <div className="text-xs text-slate-900 font-medium mt-1">
               Draft payload endpoint ready
             </div>
           </div>

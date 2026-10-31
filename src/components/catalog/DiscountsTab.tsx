@@ -282,7 +282,7 @@ export default function DiscountsTab({
           <div>
             <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
               Discount Campaigns & Eligibility Rules
-              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-800 border border-slate-300">
                 ADMIN Only (HTTP 403 for STAFF)
               </span>
             </h2>
@@ -293,7 +293,7 @@ export default function DiscountsTab({
 
           <button
             onClick={openCreateModal}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold shadow-sm transition"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold shadow-sm transition"
           >
             + New Discount Campaign
           </button>
@@ -321,7 +321,7 @@ export default function DiscountsTab({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search discount name..."
-            className="px-3.5 py-2 text-sm rounded-xl border border-slate-200 bg-slate-50/60 text-slate-900 max-w-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="px-3.5 py-2 text-sm rounded-xl border border-slate-200 bg-slate-50/60 text-slate-900 max-w-sm focus:outline-none focus:ring-2 focus:ring-slate-600"
           />
 
           <div className="inline-flex rounded-xl bg-slate-100 p-1">
@@ -372,7 +372,7 @@ export default function DiscountsTab({
                   <tr key={d.id} className="hover:bg-slate-50/70">
                     <td className="py-4 px-4 align-top">
                       <div className="font-bold text-slate-900">{d.name}</div>
-                      <div className="mt-1 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                      <div className="mt-1 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-bold bg-slate-100 text-slate-800 border border-slate-300">
                         {d.type === "PERCENT" ? `${d.value}% OFF` : `${formatINR(d.value)} OFF`}
                       </div>
                     </td>
@@ -468,9 +468,9 @@ export default function DiscountsTab({
       <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-slate-100">
           <div>
-            <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-indigo-600">
+            <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-900">
               <span>P2 → P3 Billing Handover Function</span>
-              <code className="px-2 py-0.5 rounded bg-indigo-50 border border-indigo-200 text-indigo-800">
+              <code className="px-2 py-0.5 rounded bg-slate-100 border border-slate-300 text-slate-900">
                 findApplicableDiscounts(subscription, date)
               </code>
             </div>
@@ -607,7 +607,7 @@ export default function DiscountsTab({
             <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-3">
               <div>
                 <span className="text-xs text-slate-400 block">Stacking Policy</span>
-                <code className="text-xs text-indigo-300 font-mono">
+                <code className="text-xs text-slate-400 font-mono">
                   {evalResult.stackingResult.policy}
                 </code>
               </div>
@@ -800,7 +800,7 @@ export default function DiscountsTab({
                                   );
                                 }
                               }}
-                              className="rounded border-slate-300 text-indigo-600"
+                              className="rounded border-slate-300 text-slate-900"
                             />
                             <span className="font-medium text-slate-800">{p.name}</span>
                           </label>
@@ -890,7 +890,7 @@ export default function DiscountsTab({
                   type="checkbox"
                   checked={isActive}
                   onChange={(e) => setIsActive(e.target.checked)}
-                  className="rounded border-slate-300 text-indigo-600"
+                  className="rounded border-slate-300 text-slate-900"
                 />
                 <span className="text-xs font-semibold text-slate-800">
                   Discount is Active
@@ -908,7 +908,7 @@ export default function DiscountsTab({
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold"
+                  className="px-5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold"
                 >
                   {saving
                     ? "Saving..."

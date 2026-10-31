@@ -69,10 +69,10 @@ export default function StaffSubscriptionsPage() {
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <SubscriptionHeader />
 
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 space-y-6">
+      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+            <h1 className="text-xl font-bold text-slate-900">
               Subscriptions Management
             </h1>
             <p className="text-sm text-slate-600">
@@ -81,7 +81,7 @@ export default function StaffSubscriptionsPage() {
           </div>
           <Link
             href="/subscriptions/new"
-            className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 transition"
+            className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 transition"
           >
             <Plus className="h-4 w-4" />
             Create Subscription
@@ -98,7 +98,7 @@ export default function StaffSubscriptionsPage() {
                 placeholder="Search by SUB-number, customer name, email, or plan..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none"
+                className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm text-slate-900 focus:border-slate-600 focus:outline-none"
               />
             </div>
 
@@ -150,7 +150,7 @@ export default function StaffSubscriptionsPage() {
           <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
             <p className="font-semibold">{error}</p>
             <p className="mt-1 text-xs text-amber-700">
-              Tip: Use the Active User selector in the top-right header to switch to an ADMIN or STAFF account when viewing Staff pages.
+              Tip: Sign in with an ADMIN or STAFF account to manage subscriptions.
             </p>
           </div>
         )}
@@ -187,7 +187,7 @@ export default function StaffSubscriptionsPage() {
                 ) : (
                   items.map((sub) => (
                     <tr key={sub.id} className="hover:bg-slate-50/80 transition">
-                      <td className="px-4 py-3.5 font-mono font-semibold text-indigo-700">
+                      <td className="px-4 py-3.5 font-mono font-semibold text-slate-800">
                         <Link href={`/subscriptions/${sub.id}`} className="hover:underline">
                           {sub.number}
                         </Link>

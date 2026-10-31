@@ -196,7 +196,7 @@ export default function TemplatesTab({
           <div>
             <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
               Quotation Templates & Reusable Bundles
-              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-800 border border-slate-300">
                 P3 Handover Ready
               </span>
             </h2>
@@ -211,12 +211,12 @@ export default function TemplatesTab({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search packages, plans, products..."
-              className="px-3.5 py-2 text-sm rounded-xl border border-slate-200 bg-slate-50/60 text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="px-3.5 py-2 text-sm rounded-xl border border-slate-200 bg-slate-50/60 text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-600"
             />
             {permissions.canWriteTemplates && (
               <button
                 onClick={openCreateModal}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold shadow-sm transition shrink-0"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold shadow-sm transition shrink-0"
               >
                 + New Quotation Template
               </button>
@@ -241,7 +241,7 @@ export default function TemplatesTab({
           {permissions.canWriteTemplates && (
             <button
               onClick={openCreateModal}
-              className="mt-4 px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700"
+              className="mt-4 px-4 py-2 rounded-xl bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800"
             >
               + Create First Quotation Template
             </button>
@@ -258,7 +258,7 @@ export default function TemplatesTab({
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <div className="inline-flex items-center gap-2">
-                      <span className="text-xs font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200">
+                      <span className="text-xs font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-800 border border-slate-300">
                         {template.plan.name} ({template.plan.billingPeriod})
                       </span>
                       <span className="text-xs font-semibold px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-700">
@@ -302,7 +302,7 @@ export default function TemplatesTab({
                               {line.productName}
                             </span>
                             {line.variantValue && (
-                              <span className="ml-1.5 px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 font-medium">
+                              <span className="ml-1.5 px-1.5 py-0.5 rounded bg-slate-100 text-slate-800 font-medium">
                                 {line.variantAttribute}: {line.variantValue} (+
                                 {formatINR(line.variantExtraPrice)})
                               </span>
@@ -336,7 +336,7 @@ export default function TemplatesTab({
                     <span className="text-slate-500">Plan Base: </span>
                     <strong className="text-slate-900">{formatINR(template.planPrice)}</strong>
                   </div>
-                  <div className="font-bold text-indigo-700">
+                  <div className="font-bold text-slate-800">
                     Est. Cycle: {formatINR(template.estimatedCycleTotal)}
                   </div>
                 </div>
@@ -472,7 +472,7 @@ export default function TemplatesTab({
                         },
                       ]);
                     }}
-                    className="text-xs font-semibold text-indigo-600 hover:text-indigo-800"
+                    className="text-xs font-semibold text-slate-900 hover:text-slate-900"
                   >
                     + Add Product Line
                   </button>
@@ -564,7 +564,7 @@ export default function TemplatesTab({
                         </div>
 
                         <div className="sm:col-span-2 flex items-center justify-between pt-3">
-                          <span className="text-xs font-bold text-indigo-700">
+                          <span className="text-xs font-bold text-slate-800">
                             {formatINR(lineTotal)}
                           </span>
                           {lines.length > 1 && (
@@ -596,7 +596,7 @@ export default function TemplatesTab({
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold"
+                  className="px-5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold"
                 >
                   {saving
                     ? "Saving..."
@@ -649,7 +649,7 @@ export default function TemplatesTab({
               </div>
               <div>
                 <span className="text-slate-400 block">Estimated Cycle Total</span>
-                <strong className="text-indigo-700">
+                <strong className="text-slate-800">
                   {formatINR(Number(draftPayload.estimatedCycleTotal ?? 0))}
                 </strong>
               </div>
@@ -668,7 +668,7 @@ export default function TemplatesTab({
                     );
                     notify("info", "Copied to Clipboard", "Subscription draft JSON copied");
                   }}
-                  className="text-xs font-semibold text-indigo-600 hover:text-indigo-800"
+                  className="text-xs font-semibold text-slate-900 hover:text-slate-900"
                 >
                   📋 Copy JSON
                 </button>

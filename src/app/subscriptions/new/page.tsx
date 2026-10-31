@@ -9,7 +9,7 @@ export default function NewSubscriptionPage() {
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <SubscriptionHeader />
 
-      <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 space-y-6">
+      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 space-y-6">
         <div className="flex items-center justify-between">
           <div className="space-y-1">
             <Link
@@ -19,7 +19,7 @@ export default function NewSubscriptionPage() {
               <ArrowLeft className="h-3.5 w-3.5" />
               Back to Subscriptions
             </Link>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+            <h1 className="text-xl font-bold text-slate-900">
               Create Draft Subscription
             </h1>
             <p className="text-sm text-slate-600">
