@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "next lint",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "demo-data": "tsx prisma/demo-data.ts",
+    "db-counts": "tsx scripts/db-counts.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
