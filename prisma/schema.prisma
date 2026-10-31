@@ -265,6 +265,7 @@ model Invoice {
   @@unique([subscriptionId, periodStart, periodEnd])
   @@index([status, dueDate])
   @@index([customerId])
+  @@index([invoiceDate])
 }
 
 model InvoiceLine {

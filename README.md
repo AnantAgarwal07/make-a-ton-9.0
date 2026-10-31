@@ -1,36 +1,102 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Brightloop — Subscription Management System
 
-## Getting Started
+Enterprise Subscription, Identity, Customer, Staff, Invoice, and Payment Management System built with **Next.js 14 (App Router)**, **TypeScript**, **PostgreSQL (Neon)**, **Prisma**, **Tailwind CSS**, **Zod**, **bcryptjs**, and **jose**.
 
-First, run the development server:
+---
 
+## 1. Installation & Setup
+
+### Install Dependencies
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cd brightloop
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Configure Environment Variables
+Copy `.env.example` to `.env` and fill in your values (never commit `.env`):
+```bash
+cp .env.example .env
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Required and optional variables in `.env`:
+- `DATABASE_URL`: PostgreSQL connection string (Neon).
+- `JWT_SECRET`: Secret key (at least 32 random characters) used to sign HTTP-only session JWTs.
+- `NEXT_PUBLIC_APP_URL`: Base URL of the app (defaults to `http://localhost:3000`).
+- `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`: Optional Nodemailer SMTP credentials for sending password reset emails.
+  - **Development-Only Email Fallback**: When `NODE_ENV=development` and `SMTP_HOST` is not configured, password reset emails are written to `.next/dev-email-outbox.json` (gitignored) instead of being logged to stdout or exposed in API responses.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Generate Prisma Client & Validate Schema
+```bash
+npx prisma validate
+npx prisma generate
+```
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## 2. Creating the Initial Administrator Securely
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+There is **no public administrator registration route**. Public registration (`/register` and `POST /api/auth/register`) strictly creates `CUSTOMER` accounts on the server.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+To provision the initial `ADMIN` (along with sample `STAFF` and `CUSTOMER` accounts), run the Prisma seed script:
+```bash
+npx prisma db seed
+```
 
-## Deploy on Vercel
+Default seeded accounts in `prisma/seed.ts` (password for all seeded accounts: `Admin@1234`):
+- **Administrator**: `admin@brightloop.test` (`ADMIN` -> redirects to `/admin`)
+- **Staff**: `staff@brightloop.test` (`STAFF` -> redirects to `/staff`)
+- **Customer 1**: `acme@customer.test` (`CUSTOMER` -> redirects to `/customer`)
+- **Customer 2**: `zen@customer.test` (`CUSTOMER` -> redirects to `/customer`)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 3. Running the Application
+
+### Development Server
+```bash
+npm run dev
+```
+Open `http://localhost:3000`. Unauthenticated requests redirect to `/login`.
+
+### Production Build
+```bash
+npm run build
+npm start
+```
+
+---
+
+## 4. Architecture & Role Permissions (P1 + P4)
+
+### Authentication & Sessions
+- **Login (`/login`, `POST /api/auth/login`)**: Unified sign-in for `ADMIN`, `STAFF`, and `CUSTOMER`. Verifies credentials with `bcryptjs`, rejects inactive accounts (`isActive === false`), reads the role from PostgreSQL, and issues an `HS256` JWT stored in an `HttpOnly`, `SameSite=Lax`, `Secure` (in production) cookie (`bl_session`).
+- **Logout (`POST /api/auth/logout`)**: Clears the `bl_session` cookie and redirects to `/login`.
+- **Password Reset (`/forgot-password`, `/reset-password`)**:
+  - Generates a 32-byte CSPRNG token (`crypto.randomBytes(32)`), stores only its SHA-256 hash in `PasswordResetToken.tokenHash` with a 60-minute expiry (`expiresAt`), and marks `usedAt` atomically in a transaction on completion to prevent token reuse.
+
+### Role-Based Access Control
+Enforced on the server via `src/middleware.ts` and `src/lib/auth.ts` (`getCurrentUser`, `requireUser`, `requireRole`, `requirePageAuth`):
+- **`ADMIN` (`/admin`, `/admin/staff`, `/customers`, `/dashboard`, `/invoices`, `/payments`)**:
+  - Full access to Staff Management (`GET/POST /api/staff`, `PATCH /api/staff/[id]`), Customer Management, and Finance/Billing operations.
+  - Prevents deactivating the last active `ADMIN` account.
+- **`STAFF` (`/staff`, `/customers`, `/dashboard`, `/invoices`, `/payments`)**:
+  - Access to Customer Management (`GET/POST /api/customers`, `GET/PATCH /api/customers/[id]`) and Billing/Invoice operations. Cannot access `/admin` or manage staff/admin accounts.
+- **`CUSTOMER` (`/customer`, `/portal/invoices`)**:
+  - Strictly isolated to their own linked `Customer` record (`user.customerId`). Cannot view or edit other customers' profiles or invoices, and cannot access `/admin`, `/staff`, `/customers`, or internal billing dashboards.
+
+---
+
+## 5. Testing & Verification
+
+Run the unit and domain test suite (Vitest):
+```bash
+npm test
+```
+
+Run schema validation, Prisma Client generation, TypeScript typechecking, and ESLint:
+```bash
+npx prisma validate
+npx prisma generate
+npx tsc --noEmit
+npm run lint
+```
